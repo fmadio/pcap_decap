@@ -121,8 +121,6 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	CycleCalibration();
-
 	u64 TotalBytes 		= 0;
 	u64 TotalPacket		= 0;
 	u64 T0 				= rdtsc();
@@ -187,28 +185,6 @@ int main(int argc, char* argv[])
 
 		// write payload
 		fwrite(Payload, HeaderOutput.LengthCapture - sizeof(fEther_t), 1, OutFile);
-
-/*
-		TotalBytes += Packet->LengthCapture + sizeof(PCAPPacket_t);
-
-		u64 T1 = rdtsc();
-		if (T1 > NextPrintTSC)
-		{
-			NextPrintTSC = T1 + ns2tsc(1e9);
-
-			double dT = tsc2ns(T1 - T0) / 1e9;
-			double Bps = (TotalBytes * 8.0) / dT;
-
-			double ETA = ((TotalInputBytes * 8.0) / Bps) - dT;
-
-			printf("[%.4f %%] %.3fGB %.6fGbps Elapsed:%f Min ETA:%2.f Min | ", TotalBytes / (double)TotalInputBytes, TotalBytes / 1e9, Bps / 1e9, dT/60, ETA / 60);
-			for (int i=0; i < InFileCnt; i++)
-			{
-				printf("%.3fGB ", InFileList[i].MapPos / 1e9);
-			}
-			printf("\n");
-		}
-*/
 	}
 
 	// print protocol stats 
