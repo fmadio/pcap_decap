@@ -1,9 +1,13 @@
-Fast PCAP de-encapsulation tool.
+Fast PCAP de-encapsulation tool
 
-SUpports:
-- ERSPAN v2
-- ERPSAN v3
+Supports:
+- VLAN
+- MPLS 
+- VNTAG 
+- ERSPAN v3
 
 Roadmap:
 - Metamako
 - Arista DANZ
+- Ixia Packet Broker
+
