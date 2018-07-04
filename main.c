@@ -40,6 +40,10 @@ u16 DeEncapsulate(	fEther_t** pEther,
 					u32* MetaNSec, 
 					u32* MetaFCS);
 
+
+void ERSPAN3Open(void);
+void ERSPAN3Close(void);
+
 //-------------------------------------------------------------------------------------------------
 
 static void Help(void)
@@ -131,6 +135,9 @@ int main(int argc, char* argv[])
 	PCAPPacket_t 	HeaderInput;	
 	PCAPPacket_t 	HeaderOutput;	
 
+	// init protocol stats
+	ERSPAN3Open();
+
 	while (true)
 	{
 		// read pcap header
@@ -203,6 +210,9 @@ int main(int argc, char* argv[])
 		}
 */
 	}
+
+	// print protocol stats 
+	ERSPAN3Close();
 
 	return 0;
 }

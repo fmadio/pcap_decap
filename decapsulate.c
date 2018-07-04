@@ -44,6 +44,75 @@
 #include "fTypes.h"
 #include "fNetwork.h"
 
+extern bool g_Verbose;
+
+//---------------------------------------------------------------------------------------------
+// ERSPan v3 statsitics 
+typedef struct
+{
+	u32		SeqNo;
+	u64		DropCnt;
+	u64		TotalDrop;
+	u64		TotalPkt;
+	u64		TotalByte;
+
+} ERSPAN3Session_t;
+
+static ERSPAN3Session_t* s_ERSPAN3;
+
+void ERSPAN3Open(void)
+{
+	// reset session info
+	s_ERSPAN3 = (ERSPAN3Session_t*)malloc(sizeof(ERSPAN3Session_t) * (1<<10) );
+	memset(s_ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
+}
+void ERSPAN3Close(void)
+{
+	// list session info 
+	for (int i=0; i < 1 << 10; i++)
+	{
+		ERSPAN3Session_t* S = &s_ERSPAN3[i];
+
+		if (S->TotalPkt == 0) continue;
+
+		fprintf(stderr, "ERSPAN Session:%08x PktCnt:%8lli Bytes:%8lli Drop:%8lli GapCnt:%6lli\n",
+				i, 
+				S->TotalPkt, 
+				S->TotalByte,
+				S->TotalDrop,
+				S->DropCnt);
+	}
+}
+
+static inline void ERSPAN3Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
+{
+	u32 Session = ERSpan->Header.Session;
+
+	ERSPAN3Session_t* S = &s_ERSPAN3[Session];
+
+	S->TotalPkt++;
+	S->TotalByte += PayloadLength;
+
+	// first seq no ? 
+	if (S->SeqNo != 0)
+	{
+		// check for drops
+		s32 dSeq = SeqNo - S->SeqNo;
+		if (dSeq != 1)
+		{
+			// print gaps
+			if (g_Verbose)
+			{
+				fprintf(stderr, "ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%i\n", Session, SeqNo, S->SeqNo, dSeq);
+			}
+
+			S->DropCnt++;	
+			S->TotalDrop += abs(dSeq);
+		}
+	}
+	S->SeqNo = SeqNo;
+}
+
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
 u16 DeEncapsulate(	fEther_t** pEther, 
@@ -187,6 +256,9 @@ u16 DeEncapsulate(	fEther_t** pEther,
 
 				// adjust the payload size
 				PayloadLength -= Payload - pPayload[0]; 
+
+				// update stats
+				ERSPAN3Sample(ERSpan, PayloadLength, SeqNo);	
 
 				//fprintf(stderr, "ERSPAN %08x %10i : %04x\n", ERSpan->Header.Session, SeqNo, EtherProto); 
 			}
