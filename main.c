@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
 	Header.Minor		= PCAPHEADER_MINOR;
 	Header.TimeZone		= 0; 
 	Header.SigFlag		= 0; 
-	Header.SnapLen		= 9*1024; 
+	Header.SnapLen		= 65535; 
 	Header.Link			= PCAPHEADER_LINK_ETHERNET; 
 	if (fwrite(&Header, sizeof(Header), 1, OutFile) != 1)
 	{
@@ -179,7 +179,7 @@ int main(int argc, char* argv[])
 		fwrite(Ether, sizeof(fEther_t), 1, OutFile);
 
 		// write payload
-		fwrite(Payload, PayloadLength, 1, OutFile);
+		fwrite(Payload, HeaderOutput.LengthCapture - sizeof(fEther_t), 1, OutFile);
 
 /*
 		TotalBytes += Packet->LengthCapture + sizeof(PCAPPacket_t);
