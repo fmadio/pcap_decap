@@ -326,22 +326,22 @@ typedef union
 {
     struct
     {
-        u32         Session     : 10;
-        u32         T           : 1;
-        u32         BSO         : 2;
-        u32         COS         : 3;
-        u32         VLAN        : 12;
         u32         Version     : 4;
+        u32         VLAN        : 12;
+        u32         COS         : 3;
+        u32         BSO         : 2;
+        u32         T           : 1;
+		u32         Session     : 10;
 
         u32         TS          : 32;
 
-        u32         O           : 1;
-        u32         Gra         : 2;
-        u32         D           : 1;
-        u32         HWID        : 6;
-        u32         FT          : 5;
-        u32         P           : 1;
         u32         SGT         : 16;
+        u32         P           : 1;
+        u32         FT          : 5;
+        u32         HWID        : 6;
+        u32         D           : 1;
+        u32         Gra         : 2;
+        u32         O           : 1;
 
     } __attribute__((packed)) Header;
     u32 d32[5];

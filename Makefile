@@ -1,6 +1,7 @@
 OBJS =
 OBJS += main.o
 OBJS += decapsulate.o
+OBJS += erspan3.o
 
 DEF = 
 DEF += -O2

@@ -47,83 +47,20 @@
 extern bool g_Verbose;
 
 //---------------------------------------------------------------------------------------------
-// ERSPan v3 statsitics 
-typedef struct
-{
-	u32		SeqNo;
-	u64		DropCnt;
-	u64		TotalDrop;
-	u64		TotalPkt;
-	u64		TotalByte;
 
-} ERSPAN3Session_t;
-
-static ERSPAN3Session_t* s_ERSPAN3;
-
-void ERSPAN3Open(void)
-{
-	// reset session info
-	s_ERSPAN3 = (ERSPAN3Session_t*)malloc(sizeof(ERSPAN3Session_t) * (1<<10) );
-	memset(s_ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
-}
-void ERSPAN3Close(void)
-{
-	// list session info 
-	for (int i=0; i < 1 << 10; i++)
-	{
-		ERSPAN3Session_t* S = &s_ERSPAN3[i];
-
-		if (S->TotalPkt == 0) continue;
-
-		fprintf(stderr, "ERSPAN Session:%08x PktCnt:%8lli Bytes:%8lli Drop:%8lli GapCnt:%6lli\n",
-				i, 
-				S->TotalPkt, 
-				S->TotalByte,
-				S->TotalDrop,
-				S->DropCnt);
-	}
-}
-
-static inline void ERSPAN3Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
-{
-	u32 Session = ERSpan->Header.Session;
-
-	ERSPAN3Session_t* S = &s_ERSPAN3[Session];
-
-	S->TotalPkt++;
-	S->TotalByte += PayloadLength;
-
-	// first seq no ? 
-	if (S->SeqNo != 0)
-	{
-		// check for drops
-		s32 dSeq = SeqNo - S->SeqNo;
-		if (dSeq != 1)
-		{
-			// print gaps
-			if (g_Verbose)
-			{
-				fprintf(stderr, "ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%i\n", Session, SeqNo, S->SeqNo, dSeq);
-			}
-
-			S->DropCnt++;	
-			S->TotalDrop += abs(dSeq);
-		}
-	}
-	S->SeqNo = SeqNo;
-}
+u16 ERSPAN3Unpack(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 DeEncapsulate(	fEther_t** pEther, 
+u16 DeEncapsulate(	u64 PCAPTS,
+					fEther_t** pEther, 
 
 					u8** pPayload, 
 					u32* pPayloadLength,
 
-					u32* MetaPort, 
-					u32* MetaSec, 
-					u32* MetaNSec, 
-					u32* MetaFCS)
+					u32* pMetaPort, 
+					u64* pMetaTS, 
+					u32* pMetaFCS)
 {
 	fEther_t* Ether = pEther[0];
 
@@ -186,13 +123,11 @@ u16 DeEncapsulate(	fEther_t** pEther,
 		else if (Header1->BOS)
 		{
 			Payload 			= (u8*)(Header1 + 1);
-
 		}
 		// tripple tag
 		else if (Header2->BOS)
 		{
 			Payload 			= (u8*)(Header2 + 1);
-
 		}
 		// quad tag
 		else if (Header3->BOS)
@@ -220,52 +155,16 @@ u16 DeEncapsulate(	fEther_t** pEther,
 		{
 			GREHeader_t* GRE = (GREHeader_t*)((u8*)IPv4Header + IPv4Header->HLen*4);
 
-			u32 GRELength	 = 4;
-			if (GRE->C) GRELength += 4; 
-			if (GRE->K) GRELength += 2; 
-
-			// seq no
-			u32 SeqNo = 0;
-			if (GRE->S)
-			{
-				u32* pSeqNo = (u32*)((u8*)GRE + GRELength);
-				SeqNo 		= swap32(pSeqNo[0]);
-				GRELength 	+= 4; 
-			}
-
-			// decode the GRE format
 			u32 GREProto = swap16(GRE->Proto);
 			switch(GREProto)
 			{
-			case GRE_PROTO_ERSPAN3:
-			{
-				ERSPANv3_t* ERSpan = (ERSPANv3_t*)((u8*)GRE + GRELength);
-				u32 ERSpanLen = 3*4;
-
-				// Update new Ethernet header
-				Ether = (fEther_t*)((u8*)ERSpan + ERSpanLen);
-
-				// new encapsulated protocol 
-				u16* pProto = (u16*)( (u8*)ERSpan + ERSpanLen + 12);
-
-				// update encapsulation
-				EtherProto = swap16(pProto[0]);
-
-				// point to (potentially) IPv4 header
-				Payload = (u8*)(pProto + 1);
-
-				// adjust the payload size
-				PayloadLength -= Payload - pPayload[0]; 
-
-				// update stats
-				ERSPAN3Sample(ERSpan, PayloadLength, SeqNo);	
-
-				//fprintf(stderr, "ERSPAN %08x %10i : %04x\n", ERSpan->Header.Session, SeqNo, EtherProto); 
-			}
-			break;
-
+			case GRE_PROTO_ERSPAN2: 
+				fprintf(stderr, "ERSPANv2 not supported\n");
+				break;
+				
+			case GRE_PROTO_ERSPAN3: return ERSPAN3Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 			default:
-				fprintf(stderr, "ERSPAN unsuported format: %x\n", GREProto);
+				fprintf(stderr, "GRE Proto unsuported format: %x\n", GREProto);
 				break;
 			}
 		}
@@ -278,5 +177,9 @@ u16 DeEncapsulate(	fEther_t** pEther,
 	pPayload[0] 		= Payload;
 	pPayloadLength[0]	= PayloadLength;
 
+	// set new TS
+	pMetaTS[0]			= PCAPTS;
+
+	// update
 	return EtherProto;
 }

@@ -28,16 +28,17 @@
 //-------------------------------------------------------------------------------------------------
 
 double TSC2Nano = 0;
-bool g_Verbose = false;
+bool g_Verbose 		= false;			// verbose output
+bool g_Dump 		= false;			// dump every packet
 
-u16 DeEncapsulate(	fEther_t** pEther, 
+u16 DeEncapsulate(	u64 TS,
+					fEther_t** pEther, 
 
 					u8** pPayload, 
 					u32* pPayloadLength,
 
 					u32* MetaPort, 
-					u32* MetaSec, 
-					u32* MetaNSec, 
+					u64* MetaTS, 
 					u32* MetaFCS);
 
 
@@ -56,7 +57,39 @@ static void Help(void)
 	printf("\n");
 	printf("Options:\n");
 	printf("-v                 : verbose output\n");
+	printf("-vv                : dump every packet\n");
 	printf("\n");
+}
+
+//-------------------------------------------------------------------------------------------------
+// prints number comma seperated
+u8* PrettyNumber(u64 num)
+{
+	// nasty ... but dont have t care about collecting
+	static u8 out[128][128];
+	static u32 out_pos = 0;
+
+	u8* Buffer = out[out_pos++];
+	out_pos = out_pos & 127;	
+
+	u8 Value[128];
+	sprintf(Value, "%lli", num);
+
+	memset(Buffer, 0x20, 128);
+	int pos = 0;
+	for (int i=strlen(Value)-1; i >= 0; i--)
+	{
+		Buffer[15 - pos] = Value[i]; 
+		pos++;
+		if ((i != 0) && ((i % 3) == 0))
+		{
+			Buffer[15 - pos] = ',';
+			pos++;
+		}
+	}
+	Buffer[16] = 0;
+
+	return Buffer;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -74,6 +107,11 @@ int main(int argc, char* argv[])
 		{
 			fprintf(stderr, "Verbose Output\n");
 			g_Verbose = true;
+		}
+		else if (strcmp(argv[i], "-vv") == 0)
+		{
+			fprintf(stderr, "Dump Output\n");
+			g_Dump = true;
 		}
 	}
 	FILE* InFile  = stdin;
@@ -150,6 +188,10 @@ int main(int argc, char* argv[])
 		}
 		//fprintf(stderr, "size: %i\n", HeaderInput.LengthCapture);
 
+		// PCAP timestamp
+		u64 TS = (u64)HeaderInput.Sec * 1000000000ULL + (u64)HeaderInput.NSec * TimeScale; 
+
+
 		fEther_t* Ether = (fEther_t*)PktInput;
 
 		// assume payload has no de-encapsulation
@@ -157,25 +199,25 @@ int main(int argc, char* argv[])
 		u32 PayloadLength	= HeaderInput.LengthCapture - sizeof(fEther_t);
 
 		u32 MetaPort 	= 0;
-		u32 MetaSec 	= 0;
-		u32 MetaNSec 	= 0;
+		u64 MetaTS 		= TS;		// default assume pcap TS
 		u32 MetaFCS 	= 0;
 
-		u32 EtherProto = DeEncapsulate(	&Ether, 
+		u32 EtherProto = DeEncapsulate(	TS,
+										&Ether, 
 										&Payload, 
 										&PayloadLength,
 										&MetaPort, 
-										&MetaSec, 
-										&MetaNSec, 
+										&MetaTS, 
 										&MetaFCS
 									  );
 
-		// write packet header
-		HeaderOutput.Sec			= HeaderInput.Sec;
-		HeaderOutput.NSec			= HeaderInput.NSec;
-
+		// update capture length based on stripped packet 
 		HeaderOutput.LengthCapture	= PayloadLength + sizeof(fEther_t); 
 		HeaderOutput.LengthWire		= HeaderInput.LengthWire; 
+
+		// re-write timestamp, decoder may have updated 
+		HeaderOutput.Sec			= MetaTS / 1000000000ULL; 
+		HeaderOutput.NSec			= MetaTS % 1000000000ULL; 
 
 		fwrite(&HeaderOutput, sizeof(HeaderOutput), 1, OutFile);
 
