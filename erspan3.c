@@ -268,6 +268,11 @@ u16 ERSPAN3Unpack(	u64 PCAPTS,
 		ERSPANv3_t* ERSpan = (ERSPANv3_t*)((u8*)GRE + GRELength);
 		u32 ERSpanLen = 3*4;
 
+		// byte swap for bitfied struct 
+		ERSpan->d32[0] = swap32(ERSpan->d32[0]);
+		ERSpan->d32[1] = swap32(ERSpan->d32[1]);
+		ERSpan->d32[2] = swap32(ERSpan->d32[2]);
+
 		// Update new Ethernet header
 		Ether = (fEther_t*)((u8*)ERSpan + ERSpanLen);
 
@@ -297,6 +302,7 @@ u16 ERSPAN3Unpack(	u64 PCAPTS,
 			fprintf(stderr, "GRA:%i ", ERSpan->Header.Gra); 
 			fprintf(stderr, "PCAP.TS:%lli ", PCAPTS); 
 			fprintf(stderr, "ERSPAN.TS:%lli ", TS); 
+			fprintf(stderr, "Ver:%i ", ERSpan->Header.Version); 
 			fprintf(stderr, "\n");
 		}
 	}
