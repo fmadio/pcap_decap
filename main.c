@@ -80,16 +80,16 @@ u8* PrettyNumber(u64 num)
 	int dec = 0;
 	for (int i=strlen(Value)-1; i >= 0; i--)
 	{
-		Buffer[15 - pos] = Value[i]; 
+		Buffer[23 - pos] = Value[i]; 
 		pos++;
 		if ((i != 0) && ((dec % 3) == 2))
 		{
-			Buffer[15 - pos] = ',';
+			Buffer[23 - pos] = ',';
 			pos++;
 		}
 		dec++;
 	}
-	Buffer[16] = 0;
+	Buffer[24] = 0;
 
 	return Buffer;
 }
