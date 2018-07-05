@@ -77,15 +77,17 @@ u8* PrettyNumber(u64 num)
 
 	memset(Buffer, 0x20, 128);
 	int pos = 0;
+	int dec = 0;
 	for (int i=strlen(Value)-1; i >= 0; i--)
 	{
 		Buffer[15 - pos] = Value[i]; 
 		pos++;
-		if ((i != 0) && ((i % 3) == 0))
+		if ((i != 0) && ((dec % 3) == 2))
 		{
 			Buffer[15 - pos] = ',';
 			pos++;
 		}
+		dec++;
 	}
 	Buffer[16] = 0;
 
