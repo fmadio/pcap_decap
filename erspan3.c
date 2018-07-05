@@ -145,7 +145,7 @@ static void ERSPAN3Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 //    .
 //    .
 //    .
-// Ignoring the modulo arithmetic the calucation is simply
+// Ignoring the modulo arithmetic the calculation is simply
 //
 // Packet N:
 //    TS Delta = Packet(N).ERSPAN.TS - Packet(0).ERSPAN.TS
