@@ -101,13 +101,22 @@ static void ERSPAN3Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 	if (S->SeqNo != 0)
 	{
 		// check for drops
-		s32 dSeq = SeqNo - S->SeqNo;
+		s64 dSeq = SeqNo - S->SeqNo;
+
+		// check for 32bit wrap
+		// Assuption is is GRE uses the full 32bits... 
+		if ((SeqNo == 0) && (S->SeqNo == 0xffffffff)) dSeq = 1; 
+
+		// check for 30bit wrap
+		// Seems Cisco Nexus 3548 and probably many other devices only use 30bit seq number  
+		if ((SeqNo == 0) && (S->SeqNo == 0x3fffffff)) dSeq = 1; 
+
 		if (dSeq != 1)
 		{
 			// print gaps
 			if (g_Verbose)
 			{
-				fprintf(stderr, "ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%i\n", Session, SeqNo, S->SeqNo, dSeq);
+				fprintf(stderr, "ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%lli\n", Session, SeqNo, S->SeqNo, dSeq);
 			}
 
 			S->DropCnt++;	
