@@ -65,7 +65,7 @@ void Arista_Open(int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--arista") == 0)
 		{
-			fprintf(stderr, "Arista 4B Time footer\n");
+			fprintf(stderr, "Arista DANZ Timestamping Format\n");
 			g_Arista = true;
 		}
 	}
