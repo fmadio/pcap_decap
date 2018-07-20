@@ -126,12 +126,6 @@ u16 Arista_Unpack(	u64 PCAPTS,
 			s_KeyTick 	= swap64(Key->ASICTick);
 			s_KeyTick31 = s_KeyTick & 0x7fffffff; 
 
-			// set the calibration based on keyframe
-			//s_TSCalib 		= true;
-			//s_TSOffset 		= AristaTS - PCAPTS; 
-			//s_TS0PCAPTS		= PCAPTS;
-			//s_TS0AristaTS	= AristaTS;
-
 			if (g_Dump)
 			{
 				static u64 LastKeyTS = 0;
@@ -188,11 +182,10 @@ u16 Arista_Unpack(	u64 PCAPTS,
 		LastArista = AristaTS;
 	}
 
-	// update TS only if theres a key frame base
+	// update TS only if theres a key frame to base it on
 	if (s_KeyTS != 0)
 	{
 		pMetaTS[0]			= AristaTS;
 	}
-
 	return 0;
 }
