@@ -4,6 +4,8 @@
 
 Fast PCAP de-encapsulation tool. Utility removes ecnapsuation from packets, and also updates any timestamp in the PCAP with any specialized header/footer. This provides more accurate timestamps at the ingress port instead of at the capture port.
 
+Utility is fast, pure C and uses linux pipes. It designed for processing TB scale PCAP running  a single pass operation. 
+
 Supports:
 - VLAN
 - MPLS 
