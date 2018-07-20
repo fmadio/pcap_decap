@@ -8,12 +8,12 @@ Supports:
 - VLAN
 - MPLS 
 - VNTAG 
-- ERSPAN v3
-- Metamako
+- ERSPAN v3 Timestamp
+- Metamako TimeStamp
 
 Experimental
-- Ixia X40 Stream Packet Broker 
-- Arista DANZ
+- Ixia X40 Stream Packet Broker Timestamp
+- Arista DANZ TimeStamp
 
 Roadmap:
 - Ask! -> support@fmad.io
