@@ -13,9 +13,10 @@ Supports:
 
 Experimental
 - Ixia X40 Stream Packet Broker 
+- Arista DANZ
 
 Roadmap:
-- Arista DANZ
+- Ask! -> support@fmad.io
 
 Usage:
 
@@ -41,5 +42,6 @@ Options:
 Protocols:
 --metamako         : assume every packet has metamako footer
 --ixia             : Ixia X40 Stream. replace FCS with a TS
+--arista           : Arista DANZ replace FCS with a TS
 
 ```
