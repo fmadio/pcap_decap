@@ -1,3 +1,5 @@
+![Alt text](http://fmad.io/analytics/logo_decap.png "fmadio pcap de-encapsulation utility")
+
 Fast PCAP de-encapsulation tool
 
 Supports:
