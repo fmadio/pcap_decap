@@ -3,6 +3,7 @@ OBJS += main.o
 OBJS += decapsulate.o
 OBJS += erspan3.o
 OBJS += metamako.o
+OBJS += ixia.o
 
 DEF = 
 DEF += -O2

@@ -30,6 +30,7 @@
 double TSC2Nano = 0;
 bool g_Verbose 		= false;			// verbose output
 bool g_MetaMako		= false;			// assume every packet has metamako footer
+bool g_Ixia			= false;			// assumes every packet has 4B ixia footer 
 bool g_Dump 		= false;			// dump every packet
 
 u16 DeEncapsulate(	u64 TS,
@@ -48,7 +49,9 @@ void ERSPAN3_Close(void);
 
 void MetaMako_Open(int argc, char* argv[]);
 void MetaMako_Close(void);
-u16 Metamako_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+
+void Ixia_Open(int argc, char* argv[]);
+void Ixia_Close(void);
 
 //-------------------------------------------------------------------------------------------------
 
@@ -185,6 +188,7 @@ int main(int argc, char* argv[])
 	// init protocol stats
 	ERSPAN3_Open(argc, argv);
 	MetaMako_Open(argc, argv);
+	Ixia_Open(argc, argv);
 
 	while (true)
 	{
@@ -244,6 +248,7 @@ int main(int argc, char* argv[])
 	// print protocol stats 
 	ERSPAN3_Close();
 	MetaMako_Close();
+	Ixia_Close();
 
 	return 0;
 }

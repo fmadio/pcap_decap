@@ -372,7 +372,6 @@ typedef union
 // MetaMako timestamp format
 //
 
-
 // meta mako packet format
 typedef struct MetaMakoFooter_t
 {
@@ -388,6 +387,17 @@ typedef struct MetaMakoFooter_t
 
 } __attribute__((packed)) MetaMakoFooter_t;
 
+//------------------------------------------------------------------------------------------------------
+//
+// Ixia 4B footer 
+//
+
+typedef struct Ixia4BFooter_t 
+{
+	u32             Counter;      	// 200mhz clock counter 
+	u32             FCS;            // FSC with the timestamp footer 
+
+} __attribute__((packed)) Ixia4BFooter_t;
 
 //------------------------------------------------------------------------------------------------------
 

@@ -46,12 +46,14 @@
 
 extern bool g_Verbose;
 extern bool g_MetaMako;
+extern bool g_Ixia;
 extern bool g_Dump;
 
 //---------------------------------------------------------------------------------------------
 
 u16 ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
 u16 MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 
 //---------------------------------------------------------------------------------------------
@@ -151,6 +153,14 @@ u16 DeEncapsulate(	u64 PCAPTS,
 		Payload 			= (u8*)(Proto + 1);
 	}
 
+	// set new Ether header (if any)
+	pEther[0] 			= Ether;
+
+	// set new IP header
+	pPayload[0] 		= Payload;
+	pPayloadLength[0]	= PayloadLength;
+
+
 	// GRE/ERSPAN
 	if (EtherProto == ETHER_PROTO_IPV4)
 	{
@@ -179,16 +189,12 @@ u16 DeEncapsulate(	u64 PCAPTS,
 	{
 		MetaMako_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
+	if (g_Ixia)
+	{
+		Ixia_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
 
-	// set new Ether header (if any)
-	pEther[0] 			= Ether;
 
-	// set new IP header
-	pPayload[0] 		= Payload;
-	pPayloadLength[0]	= PayloadLength;
-
-	// set new TS
-	pMetaTS[0]			= PCAPTS;
 
 	// update
 	return EtherProto;
