@@ -31,6 +31,7 @@ double TSC2Nano = 0;
 bool g_Verbose 		= false;			// verbose output
 bool g_MetaMako		= false;			// assume every packet has metamako footer
 bool g_Ixia			= false;			// assumes every packet has 4B ixia footer 
+bool g_Arista		= false;			// assumes every packet has 4B arista footer 
 bool g_Dump 		= false;			// dump every packet
 
 u16 DeEncapsulate(	u64 TS,
@@ -53,6 +54,9 @@ void MetaMako_Close(void);
 void Ixia_Open(int argc, char* argv[]);
 void Ixia_Close(void);
 
+void Arista_Open(int argc, char* argv[]);
+void Arista_Close(void);
+
 //-------------------------------------------------------------------------------------------------
 
 static void Help(void)
@@ -70,6 +74,7 @@ static void Help(void)
 	fprintf(stderr, "Protocols:\n");
 	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
 	fprintf(stderr, "--ixia             : Ixia X40 Stream. replace FCS with a TS\n");
+	fprintf(stderr, "--arista           : Arista DANZ replace FCS with a TS\n");
 	fprintf(stderr, "\n");
 }
 
@@ -190,6 +195,7 @@ int main(int argc, char* argv[])
 	ERSPAN3_Open(argc, argv);
 	MetaMako_Open(argc, argv);
 	Ixia_Open(argc, argv);
+	Arista_Open(argc, argv);
 
 	while (true)
 	{
@@ -250,6 +256,7 @@ int main(int argc, char* argv[])
 	ERSPAN3_Close();
 	MetaMako_Close();
 	Ixia_Close();
+	Arista_Close();
 
 	return 0;
 }

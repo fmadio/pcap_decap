@@ -399,6 +399,30 @@ typedef struct Ixia4BFooter_t
 
 } __attribute__((packed)) Ixia4BFooter_t;
 
+
+//------------------------------------------------------------------------------------------------------
+//
+// arista timestamp 
+//
+typedef struct
+{
+	u64			ASICTick;				// 1 tick is 20/7 nsec coresponds to UTCTime
+	u64			UTCTime;				// in nano seconds
+
+	u64			LastASIC;				// last sync?
+	u64			SkewNum;				// ASIC Skew numerator
+	u64			SkewDen;				// ASIC Skew denomitor 
+	u64			ASICTS;					// ASIC TS of this key 
+	u64			EgressIFDrop;			// egress interface fraqme drops... not sure what this means
+	u16			DeviceID;				// DeviceID 
+	u16			EgressIF;				// egress port 
+	u8			FCSType;				// 0 - timestamp disabled 
+										// 1 - timestamp appended + new FCS
+										// 2 - timestamp overwrites FCS 
+	u8			res0;
+
+} __attribute__((packed)) AristaKeyFrame_t;
+
 //------------------------------------------------------------------------------------------------------
 
 static inline u32 IP4Address(u32 a, u32 b, u32 c, u32 d)

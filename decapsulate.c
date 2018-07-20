@@ -47,6 +47,7 @@
 extern bool g_Verbose;
 extern bool g_MetaMako;
 extern bool g_Ixia;
+extern bool g_Arista;
 extern bool g_Dump;
 
 //---------------------------------------------------------------------------------------------
@@ -54,6 +55,7 @@ extern bool g_Dump;
 u16 ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
 u16 MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 
 //---------------------------------------------------------------------------------------------
@@ -192,6 +194,10 @@ u16 DeEncapsulate(	u64 PCAPTS,
 	if (g_Ixia)
 	{
 		Ixia_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+	if (g_Arista)
+	{
+		Arista_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
 

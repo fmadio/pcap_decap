@@ -78,7 +78,7 @@ static s64	s_TSOffset 		= 0;		// refernce delta from PCAP.TS - ERSPAN.TS
 static s64	s_TS0PCAPTS		= 0;		// Packet(0).PCAP.TS 
 static s64	s_TS0IxiaTS		= 0;		// Packet(0).ERSPAN.TS 
 
-#define TSMODULO_BIT	32
+#define TSMODULO_BIT	31
 
 static u64 s_TSModuloMask 	= ((1ULL <<  TSMODULO_BIT) - 1);
 
