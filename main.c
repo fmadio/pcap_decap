@@ -69,6 +69,7 @@ static void Help(void)
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Protocols:\n");
 	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
+	fprintf(stderr, "--ixia             : Ixia X40 Stream. replace FCS with a TS\n");
 	fprintf(stderr, "\n");
 }
 
