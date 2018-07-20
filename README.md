@@ -9,11 +9,13 @@ Supports:
 - MPLS 
 - VNTAG 
 - ERSPAN v3
+- Metamako
+
+Experimental
+- Ixia X40 Stream Packet Broker 
 
 Roadmap:
-- Metamako
 - Arista DANZ
-- Ixia Packet Broker
 
 Usage:
 
@@ -24,3 +26,20 @@ Example:
 
 cat erspan.pcap | pcap_decap > output.pcap
 
+``
+PCAP De-encapsuation : FMADIO 10G 40G 100G Packet Capture : http://www.fmad.io
+pcap_decap
+
+Command works entirely based linux input / ouput pipes.
+For example:
+$ cat erspan.pcap | pcap_decap > output.pcap
+
+Options:
+-v                 : verbose output
+-vv                : dump every packet
+
+Protocols:
+--metamako         : assume every packet has metamako footer
+--ixia             : Ixia X40 Stream. replace FCS with a TS
+
+``
