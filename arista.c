@@ -57,6 +57,13 @@ static u64		s_KeyTick	= 0;			// last Keyframe ASIC ticks
 static u64		s_KeyTick31	= 0;			// asic ticks only the lower 31bits
 											// used to detect wraparound
 
+static u64		s_TotalPkts = 0;			// total number of packets processed
+static u64 		s_TotalTS 	= 0;			// total number of packets whose TS was updated
+static u64 		s_TotalKeys	= 0;			// total number of keyframes recevied 
+
+
+u8* PrettyNumber(u64 num);
+
 //---------------------------------------------------------------------------------------------
 
 void Arista_Open(int argc, char* argv[])
@@ -73,10 +80,11 @@ void Arista_Open(int argc, char* argv[])
 
 void Arista_Close(void)
 {
-}
-
-static void Arista_Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
-{
+	fprintf(stderr, "Arista Timestamp\n");
+	fprintf(stderr, "    Total Pkt      : %s\n", PrettyNumber(s_TotalPkts));
+	fprintf(stderr, "    Total TS Update: %s\n", PrettyNumber(s_TotalTS));
+	fprintf(stderr, "    Total TS Drop  : %s\n", PrettyNumber(s_TotalPkts - s_TotalTS));
+	fprintf(stderr, "    Total KeyFrames: %s\n", PrettyNumber(s_TotalKeys));
 }
 
 //---------------------------------------------------------------------------------------------
@@ -148,6 +156,9 @@ u16 Arista_Unpack(	u64 PCAPTS,
 
 			// keyframe has no 4 byte footer
 			Tick31 = swap64(Key->ASICTS) &0x7fffffff;
+
+			// count number of keyframes seen
+			s_TotalKeys++;
 		}
 	}
 
@@ -186,6 +197,9 @@ u16 Arista_Unpack(	u64 PCAPTS,
 	if (s_KeyTS != 0)
 	{
 		pMetaTS[0]			= AristaTS;
+		s_TotalTS++;
 	}
+	s_TotalPkts++;
+
 	return 0;
 }
