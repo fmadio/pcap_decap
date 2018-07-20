@@ -29,6 +29,7 @@
 
 double TSC2Nano = 0;
 bool g_Verbose 		= false;			// verbose output
+bool g_MetaMako		= false;			// assume every packet has metamako footer
 bool g_Dump 		= false;			// dump every packet
 
 u16 DeEncapsulate(	u64 TS,
@@ -42,23 +43,30 @@ u16 DeEncapsulate(	u64 TS,
 					u32* MetaFCS);
 
 
-void ERSPAN3Open(void);
-void ERSPAN3Close(void);
+void ERSPAN3_Open(int argc, char* argv[]);
+void ERSPAN3_Close(void);
+
+void MetaMako_Open(int argc, char* argv[]);
+void MetaMako_Close(void);
+u16 Metamako_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //-------------------------------------------------------------------------------------------------
 
 static void Help(void)
 {
-	printf("pcap_decap \n");
-	printf("\n");
-	printf("Command works entirely based linux input / ouput pipes.\n"); 
-	printf("For example:\n");
-	printf("$ cat erspan.pcap | pcap_decap > output.pcap\n");
-	printf("\n");
-	printf("Options:\n");
-	printf("-v                 : verbose output\n");
-	printf("-vv                : dump every packet\n");
-	printf("\n");
+	fprintf(stderr, "pcap_decap \n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Command works entirely based linux input / ouput pipes.\n"); 
+	fprintf(stderr, "For example:\n");
+	fprintf(stderr, "$ cat erspan.pcap | pcap_decap > output.pcap\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Options:\n");
+	fprintf(stderr, "-v                 : verbose output\n");
+	fprintf(stderr, "-vv                : dump every packet\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Protocols:\n");
+	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
+	fprintf(stderr, "\n");
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -175,7 +183,8 @@ int main(int argc, char* argv[])
 	PCAPPacket_t 	HeaderOutput;	
 
 	// init protocol stats
-	ERSPAN3Open();
+	ERSPAN3_Open(argc, argv);
+	MetaMako_Open(argc, argv);
 
 	while (true)
 	{
@@ -233,7 +242,8 @@ int main(int argc, char* argv[])
 	}
 
 	// print protocol stats 
-	ERSPAN3Close();
+	ERSPAN3_Close();
+	MetaMako_Close();
 
 	return 0;
 }

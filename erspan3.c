@@ -63,14 +63,14 @@ typedef struct
 
 static ERSPAN3Session_t* s_ERSPAN3;
 
-void ERSPAN3Open(void)
+void ERSPAN3_Open(int argc, char* argv[])
 {
 	// reset session info
 	s_ERSPAN3 = (ERSPAN3Session_t*)malloc(sizeof(ERSPAN3Session_t) * (1<<10) );
 	memset(s_ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
 }
 
-void ERSPAN3Close(void)
+void ERSPAN3_Close(void)
 {
 	// list session info 
 	for (int i=0; i < 1 << 10; i++)
@@ -88,7 +88,7 @@ void ERSPAN3Close(void)
 	}
 }
 
-static void ERSPAN3Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
+static void ERSPAN3_Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 {
 	u32 Session = ERSpan->Header.Session;
 
@@ -232,7 +232,7 @@ static inline u64 TSExtract(ERSPANv3_t* ERSPAN, u64 PCAPTS)
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 ERSPAN3Unpack(	u64 PCAPTS,
+u16 ERSPAN3_Unpack(	u64 PCAPTS,
 					fEther_t** pEther, 
 
 					u8** pPayload, 
@@ -301,7 +301,7 @@ u16 ERSPAN3Unpack(	u64 PCAPTS,
 		TS = TSExtract(ERSpan, PCAPTS);
 
 		// update stats
-		ERSPAN3Sample(ERSpan, PayloadLength, SeqNo);	
+		ERSPAN3_Sample(ERSpan, PayloadLength, SeqNo);	
 
 		if (g_Dump)
 		{

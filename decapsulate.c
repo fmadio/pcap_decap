@@ -45,10 +45,14 @@
 #include "fNetwork.h"
 
 extern bool g_Verbose;
+extern bool g_MetaMako;
+extern bool g_Dump;
 
 //---------------------------------------------------------------------------------------------
 
-u16 ERSPAN3Unpack(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
+u16 ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
+u16 MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
@@ -162,12 +166,18 @@ u16 DeEncapsulate(	u64 PCAPTS,
 				fprintf(stderr, "ERSPANv2 not supported\n");
 				break;
 				
-			case GRE_PROTO_ERSPAN3: return ERSPAN3Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+			case GRE_PROTO_ERSPAN3: return ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 			default:
 				fprintf(stderr, "GRE Proto unsuported format: %x\n", GREProto);
 				break;
 			}
 		}
+	}
+
+	// extract and replace footer 
+	if (g_MetaMako)
+	{
+		MetaMako_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
 	// set new Ether header (if any)
