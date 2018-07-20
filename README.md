@@ -2,7 +2,7 @@
 
 [fmadio 10G 40G 100G Packet Capture](https://fmad.io)
 
-Fast PCAP de-encapsulation tool
+Fast PCAP de-encapsulation tool. Utility removes ecnapsuation from packets, and also updates any timestamp in the PCAP with any specialized header/footer. This provides more accurate timestamps at the ingress port instead of at the capture port.
 
 Supports:
 - VLAN
