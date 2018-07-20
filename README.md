@@ -26,7 +26,7 @@ Example:
 
 cat erspan.pcap | pcap_decap > output.pcap
 
-``
+```
 PCAP De-encapsuation : FMADIO 10G 40G 100G Packet Capture : http://www.fmad.io
 pcap_decap
 
@@ -42,4 +42,4 @@ Protocols:
 --metamako         : assume every packet has metamako footer
 --ixia             : Ixia X40 Stream. replace FCS with a TS
 
-``
+```
