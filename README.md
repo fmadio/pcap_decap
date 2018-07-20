@@ -21,6 +21,7 @@ Roadmap:
 Usage:
 
 Input is stdin
+
 Output is stdout
 
 Example:
