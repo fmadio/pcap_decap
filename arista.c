@@ -23,6 +23,8 @@
 //
 // Timestamp format is: https://eos.arista.com/timestamping-on-the-7150-series/#Timestamp_Format 
 //
+// TODO: support the TS + FCS mode. currently only supports ovewriting the FCS with TS mode
+//
 //------------------------------------------------------------------------------------------------
 
 #include <stdio.h>
