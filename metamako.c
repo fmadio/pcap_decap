@@ -92,11 +92,17 @@ u16 MetaMako_Unpack(	u64 PCAPTS,
 {
 
 	// grab the footer, assumption is every packet has a footer 
-	MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] - 16); 
+	MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - 16); 
 
-	u64 TS = (u64)Footer->Sec*1000000000ULL + (u64)Footer->NSec;
-
-	printf("%lli\n", (u64)Footer->Sec*1000000000ULL + (u64)Footer->NSec);
+	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
+	if (g_Dump)
+	{
+		fprintf(stderr, "TS: %20lli %s ", TS, FormatTS(TS)); 
+		fprintf(stderr, "%8i.%09i ", swap32(Footer->Sec),swap32(Footer->NSec)); 
+		fprintf(stderr, "PortID: %2i ", Footer->PortID); 
+		fprintf(stderr, "DevID: %04i ", swap16(Footer->DeviceID)); 
+		fprintf(stderr, "\n");
+	}
 
 	// set new packet length (strip footer) 
 	pPayloadLength[0]	= pPayloadLength[0] - 16;
