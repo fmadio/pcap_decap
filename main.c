@@ -2,7 +2,25 @@
 //
 // Copyright (c) 2017, fmad engineering llc 
 //
-// Fast PCAP de-encapsulation tool. Automatically de-encapsulate PCAPs with some basic filtering
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+// 
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software
+// Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
+// Fast PCAP de-encapsulation tool. 
+//
+// Automatically de-encapsulate PCAPs with some basic filtering
+//
+
 //
 //---------------------------------------------------------------------------------------------
 
@@ -24,6 +42,7 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -33,29 +52,6 @@ bool g_MetaMako		= false;			// assume every packet has metamako footer
 bool g_Ixia			= false;			// assumes every packet has 4B ixia footer 
 bool g_Arista		= false;			// assumes every packet has 4B arista footer 
 bool g_Dump 		= false;			// dump every packet
-
-u16 DeEncapsulate(	u64 TS,
-					fEther_t** pEther, 
-
-					u8** pPayload, 
-					u32* pPayloadLength,
-
-					u32* MetaPort, 
-					u64* MetaTS, 
-					u32* MetaFCS);
-
-
-void ERSPAN3_Open(int argc, char* argv[]);
-void ERSPAN3_Close(void);
-
-void MetaMako_Open(int argc, char* argv[]);
-void MetaMako_Close(void);
-
-void Ixia_Open(int argc, char* argv[]);
-void Ixia_Close(void);
-
-void Arista_Open(int argc, char* argv[]);
-void Arista_Close(void);
 
 //-------------------------------------------------------------------------------------------------
 
@@ -109,6 +105,20 @@ u8* PrettyNumber(u64 num)
 	Buffer[24] = 0;
 
 	return Buffer;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void trace(char* Message, ...)
+{
+	va_list arglist;
+	va_start(arglist, Message);
+
+	char buf[16*1024];
+	vsprintf(buf, Message, arglist);
+
+	fprintf(stderr, buf);
+	fflush(stderr);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -192,11 +202,7 @@ int main(int argc, char* argv[])
 	PCAPPacket_t 	HeaderOutput;	
 
 	// init protocol stats
-	ERSPAN3_Open(argc, argv);
-	MetaMako_Open(argc, argv);
-	Ixia_Open(argc, argv);
-	Arista_Open(argc, argv);
-
+	fDecap_Open(argc, argv);
 	while (true)
 	{
 		// read pcap header
@@ -225,7 +231,7 @@ int main(int argc, char* argv[])
 		u64 MetaTS 		= TS;		// default assume pcap TS
 		u32 MetaFCS 	= 0;
 
-		u32 EtherProto = DeEncapsulate(	TS,
+		u32 EtherProto = fDecap_Packet(	TS,
 										&Ether, 
 										&Payload, 
 										&PayloadLength,
@@ -253,10 +259,7 @@ int main(int argc, char* argv[])
 	}
 
 	// print protocol stats 
-	ERSPAN3_Close();
-	MetaMako_Close();
-	Ixia_Close();
-	Arista_Close();
+	fDecap_Close();
 
 	return 0;
 }

@@ -1,10 +1,10 @@
 OBJS =
 OBJS += main.o
-OBJS += decapsulate.o
-OBJS += erspan3.o
-OBJS += metamako.o
-OBJS += ixia.o
-OBJS += arista.o
+OBJS += decap.o
+OBJS += decap_erspan.o
+OBJS += decap_metamako.o
+OBJS += decap_ixia.o
+OBJS += decap_arista.o
 
 DEF = 
 DEF += -O2

@@ -3,7 +3,7 @@
 // fmadio pcap de-encapsuation utility
 //
 // Copyright (C) 2018 fmad engineering llc aaron foo 
-// 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
@@ -19,6 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 //
+// 
 // automatic packet de-encapsulation 
 //
 //---------------------------------------------------------
@@ -43,25 +44,91 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
-extern bool g_Verbose;
-extern bool g_MetaMako;
-extern bool g_Ixia;
-extern bool g_Arista;
-extern bool g_Dump;
+bool g_DecapDump		= false;
+bool g_DecapVerbose		= false;
+bool g_DecapMetaMako	= false;
+bool g_DecapIxia		= false;
+bool g_DecapArista		= false;
 
 //---------------------------------------------------------------------------------------------
 
-u16 ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
-u16 MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
+void fDecap_Arista_Open		(int argc, char* argv[]);
+void fDecap_ERSPAN3_Open	(int argc, char* argv[]);
+void fDecap_MetaMako_Open	(int argc, char* argv[]);
+void fDecap_Ixia_Open		(int argc, char* argv[]);
+
+void fDecap_Arista_Close	(void);
+void fDecap_ERSPAN3_Close	(void);
+void fDecap_MetaMako_Close	(void);
+void fDecap_Ixia_Close		(void);
+
+u16 fDecap_ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
+u16 fDecap_MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+
+//---------------------------------------------------------------------------------------------
+/*
+void fDecap_Mode(u32 Mode)
+{
+	// reset all
+	g_DecapMetaMako = false;
+	g_DecapIxia 	= false;
+	g_DecapArista 	= false;
+
+	switch (Mode)
+	{
+	case FNIC_PACKET_TSMODE_NIC:
+		break;
+
+	case FNIC_PACKET_TSMODE_MMAKO:
+		g_DecapMetaMako = true;
+		break;
+
+	case FNIC_PACKET_TSMODE_IXIA:
+		g_DecapIxia 	= true;
+		break;
+
+	case FNIC_PACKET_TSMODE_ARISTA:
+		g_DecapArista 	= true;
+		break;
+	}
+}
+*/
+
+//---------------------------------------------------------------------------------------------
+
+void fDecap_Open(int argc, char* argv[])
+{
+	// packet meta data is explicit 
+	if (g_DecapArista) 		fDecap_Arista_Open		(argc, argv);
+	if (g_DecapMetaMako) 	fDecap_MetaMako_Open	(argc, argv);
+	if (g_DecapIxia) 		fDecap_Ixia_Open		(argc, argv);
+
+	// protocol implicit in the payload 
+	fDecap_ERSPAN3_Open(argc, argv);
+}
+
+//---------------------------------------------------------------------------------------------
+
+void fDecap_Close(void)
+{
+	// packet meta data is explicit 
+	if (g_DecapArista) 		fDecap_Arista_Close	();
+	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
+	if (g_DecapIxia) 		fDecap_Ixia_Close		();
+
+	// protocol implicit in the payload 
+	fDecap_ERSPAN3_Close();
+}
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 DeEncapsulate(	u64 PCAPTS,
-					fEther_t** pEther, 
+u16 fDecap_Packet(	u64 PCAPTS,
+					struct fEther_t** pEther, 
 
 					u8** pPayload, 
 					u32* pPayloadLength,
@@ -79,6 +146,7 @@ u16 DeEncapsulate(	u64 PCAPTS,
 	u8* Payload 		= pPayload[0];
 	u32 PayloadLength 	= pPayloadLength[0];
 
+	// vlan decode
 	if (EtherProto == ETHER_PROTO_VLAN)
 	{
 		VLANTag_t* Header 	= (VLANTag_t*)(Ether+1);
@@ -111,6 +179,7 @@ u16 DeEncapsulate(	u64 PCAPTS,
 		}
 	}
 
+	// mpls decode 
 	if (EtherProto == ETHER_PROTO_MPLS)
 	{
 		// find bottom of stack
@@ -162,7 +231,6 @@ u16 DeEncapsulate(	u64 PCAPTS,
 	pPayload[0] 		= Payload;
 	pPayloadLength[0]	= PayloadLength;
 
-
 	// GRE/ERSPAN
 	if (EtherProto == ETHER_PROTO_IPV4)
 	{
@@ -175,32 +243,30 @@ u16 DeEncapsulate(	u64 PCAPTS,
 			switch(GREProto)
 			{
 			case GRE_PROTO_ERSPAN2: 
-				fprintf(stderr, "ERSPANv2 not supported\n");
+				trace("ERSPANv2 not supported\n");
 				break;
 				
-			case GRE_PROTO_ERSPAN3: return ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+			case GRE_PROTO_ERSPAN3: return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 			default:
-				fprintf(stderr, "GRE Proto unsuported format: %x\n", GREProto);
+				trace("GRE Proto unsuported format: %x\n", GREProto);
 				break;
 			}
 		}
 	}
 
-	// extract and replace footer 
-	if (g_MetaMako)
+	// extract data from footers 
+	if (g_DecapMetaMako)
 	{
-		MetaMako_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_MetaMako_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_Ixia)
+	if (g_DecapIxia)
 	{
-		Ixia_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Ixia_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_Arista)
+	if (g_DecapArista)
 	{
-		Arista_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Arista_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-
-
 
 	// update
 	return EtherProto;

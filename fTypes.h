@@ -476,4 +476,7 @@ static inline u64 nsec2ts(u32 sec, u32 nsec)
 	return (u64)sec * 1000000000ULL + (u64)nsec;
 }
 
+
+void trace(char* Message, ...);
+
 #endif

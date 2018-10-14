@@ -27,7 +27,7 @@
 #define  FMADIO_NETWORK_H
 
 // ethernet header
-typedef struct
+typedef struct fEther_t
 {
 	u8		Dst[6];
 	u8		Src[6];
