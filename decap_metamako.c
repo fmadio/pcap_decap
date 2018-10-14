@@ -53,16 +53,14 @@ u8* PrettyNumber(u64 num);
 
 void fDecap_MetaMako_Open(int argc, char* argv[])
 {
-	/*
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--metamako") == 0)
 		{
-			trace(stderr, "MetaMako footer\n");
-			g_MetaMako = true;
+			trace("MetaMako footer\n");
+			g_DecapMetaMako = true;
 		}
 	}
-	*/
 }
 
 void fDecap_MetaMako_Close(void)

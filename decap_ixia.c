@@ -52,16 +52,14 @@ extern bool g_DecapDump;
 
 void fDecap_Ixia_Open(int argc, char* argv[])
 {
-	/*
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--ixia") == 0)
 		{
 			fprintf(stderr, "Ixia 4B Time footer\n");
-			g_Ixia = true;
+			g_DecapIxia = true;
 		}
 	}
-	*/
 }
 
 void fDecap_Ixia_Close(void)

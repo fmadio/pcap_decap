@@ -69,16 +69,14 @@ u8* PrettyNumber(u64 num);
 
 void fDecap_Arista_Open(int argc, char* argv[])
 {
-	/*
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--arista") == 0)
 		{
-			trace(stderr, "Arista DANZ Timestamping Format\n");
-			g_Arista = true;
+			trace("Arista DANZ Timestamping Format\n");
+			g_DecapArista = true;
 		}
 	}
-	*/
 }
 
 void fDecap_Arista_Close(void)
