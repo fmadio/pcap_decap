@@ -47,11 +47,6 @@
 //-------------------------------------------------------------------------------------------------
 
 double TSC2Nano = 0;
-bool g_Verbose 		= false;			// verbose output
-bool g_MetaMako		= false;			// assume every packet has metamako footer
-bool g_Ixia			= false;			// assumes every packet has 4B ixia footer 
-bool g_Arista		= false;			// assumes every packet has 4B arista footer 
-bool g_Dump 		= false;			// dump every packet
 
 //-------------------------------------------------------------------------------------------------
 
@@ -117,7 +112,7 @@ void trace(char* Message, ...)
 	char buf[16*1024];
 	vsprintf(buf, Message, arglist);
 
-	fprintf(stderr, buf);
+	fprintf(stderr, "%s", buf);
 	fflush(stderr);
 }
 
@@ -132,16 +127,6 @@ int main(int argc, char* argv[])
 		{
 			Help();
 			return 0;
-		}
-		else if (strcmp(argv[i], "-v") == 0)
-		{
-			fprintf(stderr, "Verbose Output\n");
-			g_Verbose = true;
-		}
-		else if (strcmp(argv[i], "-vv") == 0)
-		{
-			fprintf(stderr, "Dump Output\n");
-			g_Dump = true;
 		}
 	}
 	FILE* InFile  = stdin;

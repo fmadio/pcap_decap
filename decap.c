@@ -103,6 +103,20 @@ void fDecap_Mode(u32 Mode)
 
 void fDecap_Open(int argc, char* argv[])
 {
+	for (int i=1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "-v") == 0)
+		{
+			fprintf(stderr, "Verbose Output\n");
+			g_DecapVerbose = true;
+		}
+		else if (strcmp(argv[i], "-vv") == 0)
+		{
+			fprintf(stderr, "Dump Output\n");
+			g_DecapDump = true;
+		}
+	}
+
 	// packet meta data is explicit 
 	if (g_DecapArista) 		fDecap_Arista_Open		(argc, argv);
 	if (g_DecapMetaMako) 	fDecap_MetaMako_Open	(argc, argv);
