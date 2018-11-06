@@ -206,7 +206,7 @@ static u64 TSSignedModulo(u64 Value)
 
 static inline u64 TSExtract(ERSPANv3_t* ERSPAN, u64 PCAPTS)
 {
-	u64 ERTS = swap32(ERSPAN->Header.TS);
+	u64 ERTS = ERSPAN->Header.TS;				// 2018/11/6: this was byteswapped, but seems should be native little endian
 	if (!s_TSCalib)
 	{
 		s_TSCalib 		= true;
@@ -309,8 +309,9 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 			trace("SeqNo:%08x ", SeqNo);
 			trace("EtherProt:%04x ", EtherProto); 
 			trace("GRA:%i ", ERSpan->Header.Gra); 
-			trace("PCAP.TS:%lli ", PCAPTS); 
-			trace("ERSPAN.TS:%lli ", TS); 
+			trace("PCAP.TS:%lli (%s) ", PCAPTS, FormatTS(PCAPTS)); 
+			trace("ERSPAN.TS:%lli (%s) ", TS, FormatTS(TS)); 
+			trace("dTS:%8lli ", TS - PCAPTS); 
 			trace("Ver:%i ", ERSpan->Header.Version); 
 			trace("\n");
 		}
