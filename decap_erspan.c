@@ -272,6 +272,33 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 	u32 GREProto = swap16(GRE->Proto);
 	switch(GREProto)
 	{
+	case GRE_PROTO_ERSPAN2:
+		{
+			// ERSPAN Type I flagged by 0x88be AND Version == 0 
+			// Type I has no header, just fully encapsulated
+			if (GRE->Version == 0)
+			{
+				// Update new Ethernet header
+				Ether = (fEther_t*)(GRE + 1);
+
+				// update encapsulation
+				EtherProto = swap16(Ether->Proto);
+
+				// point to (potentially) IPv4 header
+				Payload = (u8*)(Ether + 1);
+
+				// adjust the payload size
+				PayloadLength -= Payload - pPayload[0]; 
+			}
+			// ERSPAN Type II flagged by 0x88be AND Version == 1 
+			// this has an header 
+			else
+			{
+				trace("erspan2 Version:%08x Type II not supported\n", GRE->Version);	
+			}
+		}
+		break;
+
 	case GRE_PROTO_ERSPAN3:
 	{
 		ERSPANv3_t* ERSpan = (ERSPANv3_t*)((u8*)GRE + GRELength);

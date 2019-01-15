@@ -88,7 +88,6 @@ void fDecap_Arista_Close(void)
 	trace("    Total KeyFrames: %s\n", PrettyNumber(s_TotalKeys));
 }
 
-
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
 u16 fDecap_Arista_Unpack(	u64 PCAPTS,

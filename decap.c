@@ -257,10 +257,9 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			switch(GREProto)
 			{
 			case GRE_PROTO_ERSPAN2: 
-				trace("ERSPANv2 not supported\n");
-				break;
-				
-			case GRE_PROTO_ERSPAN3: return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+			case GRE_PROTO_ERSPAN3: 
+				return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+
 			default:
 				trace("GRE Proto unsuported format: %x\n", GREProto);
 				break;
