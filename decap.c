@@ -40,10 +40,8 @@
 #include <sys/ioctl.h>
 #include <linux/tcp.h>
 
-#include "common/fTypes.h"
-#include "common/fmadio_fields.h"
-#include "common/fmadio_network.h"
-#include "common/fmadio_trace.h"
+#include "fTypes.h"
+#include "fNetwork.h"
 
 #include "decap.h"
 
@@ -80,7 +78,7 @@ u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPay
 u16 fDecap_Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
-
+/*
 void fDecap_Mode(u32 Mode)
 {
 	// reset all
@@ -106,6 +104,7 @@ void fDecap_Mode(u32 Mode)
 		break;
 	}
 }
+*/
 
 //---------------------------------------------------------------------------------------------
 

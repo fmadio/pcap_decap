@@ -40,10 +40,8 @@
 #include <sys/ioctl.h>
 #include <linux/tcp.h>
 
-#include "common/fTypes.h"
-#include "common/fmadio_fields.h"
-#include "common/fmadio_network.h"
-#include "common/fmadio_trace.h"
+#include "fTypes.h"
+#include "fNetwork.h"
 
 #include "decap.h"
 
