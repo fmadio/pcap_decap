@@ -18,7 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-// 
 // erspan v3 de-encapusation 
 //
 //---------------------------------------------------------
@@ -41,8 +40,12 @@
 #include <sys/ioctl.h>
 #include <linux/tcp.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
+#include "common/fTypes.h"
+#include "common/fmadio_fields.h"
+#include "common/fmadio_network.h"
+#include "common/fmadio_trace.h"
+
+#include "decap.h"
 
 extern bool g_DecapVerbose;
 extern bool g_DecapDump;
@@ -294,7 +297,8 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 			// this has an header 
 			else
 			{
-				trace("erspan2 Version:%08x Type II not supported\n", GRE->Version);	
+				//trace("erspan2 Version:%08x Type II not supported\n", GRE->Version);	
+				fDecap_Error(DECAP_ERROR_ERSPAN_TYPEII);
 			}
 		}
 		break;
@@ -346,7 +350,8 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 	break;
 
 	default:
-		trace("ERSPAN unsuported format: %x\n", GREProto);
+		//trace("ERSPAN unsuported format: %x\n", GREProto);
+		fDecap_Error(DECAP_ERROR_ERSPAN_UNSUPPORTED);
 		break;
 	}
 

@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2019 fmad engineering llc aaron foo 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,8 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-//
-// 
 // automatic packet de-encapsulation 
 //
 //---------------------------------------------------------
@@ -42,8 +40,11 @@
 #include <sys/ioctl.h>
 #include <linux/tcp.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
+#include "common/fTypes.h"
+#include "common/fmadio_fields.h"
+#include "common/fmadio_network.h"
+#include "common/fmadio_trace.h"
+
 #include "decap.h"
 
 bool g_DecapDump		= false;
@@ -51,6 +52,14 @@ bool g_DecapVerbose		= false;
 bool g_DecapMetaMako	= false;
 bool g_DecapIxia		= false;
 bool g_DecapArista		= false;
+
+
+//---------------------------------------------------------------------------------------------
+// error codes
+
+static u64 	s_DecapErrorCnt[DECAP_ERROR_MAX];	// number of errors
+
+static u64	s_GREProtoHistogram[0x10000];		// gre protocol histogram
 
 //---------------------------------------------------------------------------------------------
 
@@ -71,7 +80,7 @@ u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPay
 u16 fDecap_Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
-/*
+
 void fDecap_Mode(u32 Mode)
 {
 	// reset all
@@ -97,7 +106,6 @@ void fDecap_Mode(u32 Mode)
 		break;
 	}
 }
-*/
 
 //---------------------------------------------------------------------------------------------
 
@@ -124,6 +132,12 @@ void fDecap_Open(int argc, char* argv[])
 
 	// protocol implicit in the payload 
 	fDecap_ERSPAN3_Open(argc, argv);
+
+	// reset error counts
+	memset(s_DecapErrorCnt, 0, sizeof(s_DecapErrorCnt));
+
+	// reset GRE histogram
+	memset(s_GREProtoHistogram, 0, sizeof(s_GREProtoHistogram));
 }
 
 //---------------------------------------------------------------------------------------------
@@ -131,12 +145,44 @@ void fDecap_Open(int argc, char* argv[])
 void fDecap_Close(void)
 {
 	// packet meta data is explicit 
-	if (g_DecapArista) 		fDecap_Arista_Close	();
+	if (g_DecapArista) 		fDecap_Arista_Close		();
 	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
 	if (g_DecapIxia) 		fDecap_Ixia_Close		();
 
 	// protocol implicit in the payload 
 	fDecap_ERSPAN3_Close();
+
+	// print any errors
+	for (int i=0; i < DECAP_ERROR_MAX; i++)
+	{
+		if (s_DecapErrorCnt[i] == 0) continue;
+
+		u8* Desc = "undef";
+		switch (i)
+		{
+		case DECAP_ERROR_GRE_UNSUPPORTED	: Desc = "GRE_UNSUPPORTED"; 	break;
+		case DECAP_ERROR_ERSPAN_UNSUPPORTED	: Desc = "ERSPAN_UNSUPPORTED"; 	break;
+		case DECAP_ERROR_ERSPAN_TYPEII		: Desc = "ERSPAN_TYPE_II"; 		break;
+		}
+		fprintf(stderr, "Error: %10lli %s\n", s_DecapErrorCnt[i], Desc);
+	}
+
+	// print GRE histogram 
+	fprintf(stderr, "GRE Histogram:\n");
+	for (int i=0; i < 0x10000; i++)
+	{
+		if (s_GREProtoHistogram[i] == 0) continue;
+		fprintf(stderr, "    %04x : %16lli\n", i, s_GREProtoHistogram[i]);
+	}
+}
+
+//---------------------------------------------------------------------------------------------
+// found an error, dont print per packet as it spewes alot of crap
+void fDecap_Error(u32 Index)
+{
+	if (Index > DECAP_ERROR_MAX) return;
+
+	s_DecapErrorCnt[Index]++;
 }
 
 //---------------------------------------------------------------------------------------------
@@ -249,6 +295,7 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	if (EtherProto == ETHER_PROTO_IPV4)
 	{
 		IPv4Header_t* IPv4Header = (IPv4Header_t*)Payload;
+
 		if (IPv4Header->Proto == IPv4_PROTO_GRE)
 		{
 			GREHeader_t* GRE = (GREHeader_t*)((u8*)IPv4Header + IPv4Header->HLen*4);
@@ -261,9 +308,13 @@ u16 fDecap_Packet(	u64 PCAPTS,
 				return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 
 			default:
-				trace("GRE Proto unsuported format: %x\n", GREProto);
+				//trace("GRE Proto unsuported format: %x\n", GREProto);
+				fDecap_Error(DECAP_ERROR_GRE_UNSUPPORTED);
 				break;
 			}
+
+			// update histogram
+			s_GREProtoHistogram[GREProto]++;
 		}
 	}
 
