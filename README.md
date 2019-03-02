@@ -10,6 +10,8 @@ Supports:
 - VLAN
 - MPLS 
 - VNTAG 
+- GRE basic 
+- ERSPAN v1 Timestamp
 - ERSPAN v3 Timestamp
 - Metamako TimeStamp
 
