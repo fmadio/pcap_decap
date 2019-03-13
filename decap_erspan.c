@@ -275,9 +275,9 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 	{
 	case GRE_PROTO_ERSPAN2:
 		{
-			// ERSPAN Type I flagged by 0x88be AND Version == 0 
+			// ERSPAN Type I flagged by 0x88be AND Version == 0 AND Seqbit == 0
 			// Type I has no header, just fully encapsulated
-			if (GRE->Version == 0)
+			if (GRE->S == 0)
 			{
 				// Update new Ethernet header
 				Ether = (fEther_t*)(GRE + 1);
@@ -291,12 +291,34 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 				// adjust the payload size
 				PayloadLength -= Payload - pPayload[0]; 
 			}
-			// ERSPAN Type II flagged by 0x88be AND Version == 1 
-			// this has an header 
+			// ERSPAN Type II flagged by 0x88be AND Version == 0 AND SeqBit == 1
+			// Type II has an header 
 			else
 			{
-				//trace("erspan2 Version:%08x Type II not supported\n", GRE->Version);	
-				fDecap_Error(DECAP_ERROR_ERSPAN_TYPEII);
+				ERSPANv2_t* ERSPAN = (ERSPANv2_t*)((u8*)GRE + GRELength);
+
+				// byte swap it
+				ERSPAN->d32[0] = swap32(ERSPAN->d32[0]);
+				ERSPAN->d32[1] = swap32(ERSPAN->d32[1]);
+				ERSPAN->d32[2] = swap32(ERSPAN->d32[2]);
+
+				//trace("ERSPAN Version:%i Index:%i Session:%i VLAN:%i\n", 	
+				//										ERSPAN->Header.Version,
+				//										ERSPAN->Header.Index,
+				//										ERSPAN->Header.Session,
+				//										ERSPAN->Header.VLAN);
+
+				// Update new Ethernet header
+				Ether = (fEther_t*)(ERSPAN + 1);
+
+				// update encapsulation
+				EtherProto = swap16(Ether->Proto);
+
+				// point to (potentially) IPv4 header
+				Payload = (u8*)(Ether + 1);
+
+				// adjust the payload size
+				PayloadLength -= Payload - pPayload[0]; 
 			}
 		}
 		break;
@@ -348,7 +370,7 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 	break;
 
 	default:
-		//trace("ERSPAN unsuported format: %x\n", GREProto);
+		trace("ERSPAN unsuported format: %x\n", GREProto);
 		fDecap_Error(DECAP_ERROR_ERSPAN_UNSUPPORTED);
 		break;
 	}
