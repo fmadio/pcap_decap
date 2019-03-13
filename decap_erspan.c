@@ -370,7 +370,7 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 	break;
 
 	default:
-		trace("ERSPAN unsuported format: %x\n", GREProto);
+		//trace("ERSPAN unsuported format: %x\n", GREProto);
 		fDecap_Error(DECAP_ERROR_ERSPAN_UNSUPPORTED);
 		break;
 	}
