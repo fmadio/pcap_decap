@@ -296,17 +296,20 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 			else
 			{
 				ERSPANv2_t* ERSPAN = (ERSPANv2_t*)((u8*)GRE + GRELength);
+				ERSPANv2_t ERSPANDecode;
 
-				// byte swap it
-				ERSPAN->d32[0] = swap32(ERSPAN->d32[0]);
-				ERSPAN->d32[1] = swap32(ERSPAN->d32[1]);
-				ERSPAN->d32[2] = swap32(ERSPAN->d32[2]);
+				// byte swap it + non-destructive download
+				ERSPANDecode.d32[0] = swap32(ERSPAN->d32[0]);
+				ERSPANDecode.d32[1] = swap32(ERSPAN->d32[1]);
+				ERSPANDecode.d32[2] = swap32(ERSPAN->d32[2]);
 
 				//trace("ERSPAN Version:%i Index:%i Session:%i VLAN:%i\n", 	
-				//										ERSPAN->Header.Version,
-				//										ERSPAN->Header.Index,
-				//										ERSPAN->Header.Session,
-				//										ERSPAN->Header.VLAN);
+				//										ERSPANDecode.Header.Version,
+				//										ERSPANDecode.Header.Index,
+				//										ERSPANDecode.Header.Session,
+				//										ERSPANDecode.Header.VLAN);
+
+
 
 				// Update new Ethernet header
 				Ether = (fEther_t*)(ERSPAN + 1);
@@ -328,10 +331,11 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 		ERSPANv3_t* ERSpan = (ERSPANv3_t*)((u8*)GRE + GRELength);
 		u32 ERSpanLen = 3*4;
 
-		// byte swap for bitfied struct 
-		ERSpan->d32[0] = swap32(ERSpan->d32[0]);
-		ERSpan->d32[1] = swap32(ERSpan->d32[1]);
-		ERSpan->d32[2] = swap32(ERSpan->d32[2]);
+		// byte swap for bitfied struct  + non destructive decode
+		ERSPANv3_t ERSpanDecode;
+		ERSpanDecode.d32[0] = swap32(ERSpan->d32[0]);
+		ERSpanDecode.d32[1] = swap32(ERSpan->d32[1]);
+		ERSpanDecode.d32[2] = swap32(ERSpan->d32[2]);
 
 		// Update new Ethernet header
 		Ether = (fEther_t*)((u8*)ERSpan + ERSpanLen);
@@ -348,22 +352,26 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 		// adjust the payload size
 		PayloadLength -= Payload - pPayload[0]; 
 
+		// remove FCS from output, as ERSPAN does not include it 
+		// + keeping the orignial FCS just confuses things
+		PayloadLength -= 4;
+
 		// calculate timestamp
-		TS = TSExtract(ERSpan, PCAPTS);
+		TS = TSExtract(&ERSpanDecode, PCAPTS);
 
 		// update stats
-		ERSPAN3_Sample(ERSpan, PayloadLength, SeqNo);	
+		ERSPAN3_Sample(&ERSpanDecode, PayloadLength, SeqNo);	
 
 		if (g_DecapDump)
 		{
-			trace("ERSPAN Session:%08x ", ERSpan->Header.Session);
+			trace("ERSPAN Session:%08x ", ERSpanDecode.Header.Session);
 			trace("SeqNo:%08x ", SeqNo);
 			trace("EtherProt:%04x ", EtherProto); 
-			trace("GRA:%i ", ERSpan->Header.Gra); 
+			trace("GRA:%i ", ERSpanDecode.Header.Gra); 
 			trace("PCAP.TS:%lli (%s) ", PCAPTS, FormatTS(PCAPTS)); 
 			trace("ERSPAN.TS:%lli (%s) ", TS, FormatTS(TS)); 
 			trace("dTS:%8lli ", TS - PCAPTS); 
-			trace("Ver:%i ", ERSpan->Header.Version); 
+			trace("Ver:%i ", ERSpanDecode.Header.Version); 
 			trace("\n");
 		}
 	}
