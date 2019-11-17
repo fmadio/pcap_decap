@@ -14,10 +14,11 @@ Supports:
 - ERSPAN v1 Timestamp
 - ERSPAN v3 Timestamp
 - Metamako TimeStamp
+- Exablaze TimeStamp
+- Arista DANZ TimeStamp
 
 Experimental
 - Ixia X40 Stream Packet Broker Timestamp
-- Arista DANZ TimeStamp
 
 Roadmap:
 - Ask! -> support@fmad.io

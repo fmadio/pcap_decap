@@ -18,7 +18,7 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-// MetaMako de-encapsulation 
+// Exablaze Footer de-encapsulation 
 //
 //---------------------------------------------------------
 
@@ -43,42 +43,42 @@
 #include "fNetwork.h"
 
 extern bool g_DecapVerbose;
-extern bool g_DecapMetaMako;
+extern bool g_DecapExablaze;
 extern bool g_DecapDump;
 
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_MetaMako_Open(int argc, char* argv[])
+void fDecap_Exablaze_Open(int argc, char* argv[])
 {
 	for (int i=1; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--metamako") == 0)
+		if (strcmp(argv[i], "--exablaze") == 0)
 		{
-			trace("MetaMako footer\n");
-			g_DecapMetaMako = true;
+			trace("Exablaze footer\n");
+			g_DecapExablaze = true;
 		}
 	}
 }
 
-void fDecap_MetaMako_Close(void)
+void fDecap_Exablaze_Close(void)
 {
 }
 
-static void fDecap_MetaMako_Sample(void)
+static void fDecap_Exablaze_Sample(void)
 {
 }
 
 //---------------------------------------------------------------------------------------------
-// metamako de-encapsulation 
+// Exablaze de-encapsulation 
 //
-// 1) extracts an replaces the pcap timestamp with the absolute timestamp from the metamako 
+// 1) extracts an replaces the pcap timestamp with the absolute timestamp from the  
 //    footer
 //
 // 2) strips the footer, so the orignial packet and FCS are written to the pcap
 //
-u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
+u16 fDecap_Exablaze_Unpack(	u64 PCAPTS,
 							fEther_t** pEther, 
 
 							u8** pPayload, 
@@ -89,15 +89,14 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 							u32* pMetaFCS)
 {
 	// grab the footer, assumption is every packet has a footer 
-	MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(MetaMakoFooter_t)); 
-
-	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
+	ExablazeFooter_t* Footer = (ExablazeFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(ExablazeFooter_t)); 
+	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (1000000000ULL*(u64)swap32(Footer->NSec)) / 0x100000000ULL;
 	if (g_DecapDump)
 	{
 		trace("TS: %20lli %s ", TS, FormatTS(TS)); 
-		trace("%8i.%09i ", swap32(Footer->Sec),swap32(Footer->NSec)); 
-		trace("PortID: %2i ", Footer->PortID); 
-		trace("DevID: %04i ", swap16(Footer->DeviceID)); 
+		trace("%8i %f %02i", swap32(Footer->Sec), swap32(Footer->NSec) / (float)0x100000000), Footer->PSec; 
+		trace("PortID: %2x ", Footer->PortID); 
+		trace("DevID: %x", swap16(Footer->DeviceID)); 
 		trace("\n");
 	}
 

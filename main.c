@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------------------------
 //
-// Copyright (c) 2017, fmad engineering llc 
+// Copyright (c) 2017 - 2019 , fmad engineering llc 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -38,7 +38,7 @@
 #include <sys/mman.h>
 #include <sys/shm.h>
 #include <sys/ioctl.h>
-#include <linux/sched.h>
+//#include <linux/sched.h>
 
 #include "fTypes.h"
 #include "fNetwork.h"
@@ -66,6 +66,7 @@ static void Help(void)
 	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
 	fprintf(stderr, "--ixia             : Ixia X40 Stream. replace FCS with a TS\n");
 	fprintf(stderr, "--arista           : Arista DANZ replace FCS with a TS\n");
+	fprintf(stderr, "--exablaze         : assume every packet has an Exablaze footer\n");
 	fprintf(stderr, "\n");
 }
 

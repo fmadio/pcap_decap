@@ -38,7 +38,6 @@
 #include <sys/mman.h>
 #include <sys/shm.h>
 #include <sys/ioctl.h>
-#include <linux/tcp.h>
 
 #include "fTypes.h"
 #include "fNetwork.h"
@@ -50,6 +49,7 @@ bool g_DecapVerbose		= false;
 bool g_DecapMetaMako	= false;
 bool g_DecapIxia		= false;
 bool g_DecapArista		= false;
+bool g_DecapExablaze		= false;
 
 
 //---------------------------------------------------------------------------------------------
@@ -66,16 +66,19 @@ void fDecap_Arista_Open		(int argc, char* argv[]);
 void fDecap_ERSPAN3_Open	(int argc, char* argv[]);
 void fDecap_MetaMako_Open	(int argc, char* argv[]);
 void fDecap_Ixia_Open		(int argc, char* argv[]);
+void fDecap_Exablaze_Open	(int argc, char* argv[]);
 
 void fDecap_Arista_Close	(void);
 void fDecap_ERSPAN3_Close	(void);
 void fDecap_MetaMako_Close	(void);
 void fDecap_Ixia_Close		(void);
+void fDecap_Exablaze_Close	(void);
 
 u16 fDecap_ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
 u16 fDecap_MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 fDecap_Arista_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Exablaze_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
 /*
@@ -85,6 +88,7 @@ void fDecap_Mode(u32 Mode)
 	g_DecapMetaMako = false;
 	g_DecapIxia 	= false;
 	g_DecapArista 	= false;
+	g_DecapExablaze	= false;
 
 	switch (Mode)
 	{
@@ -102,6 +106,11 @@ void fDecap_Mode(u32 Mode)
 	case FNIC_PACKET_TSMODE_ARISTA:
 		g_DecapArista 	= true;
 		break;
+
+	case FNIC_PACKET_TSMODE_EXABLAZE:
+		g_DecapExablaze	= true;
+		break;
+
 	}
 }
 */
@@ -125,9 +134,10 @@ void fDecap_Open(int argc, char* argv[])
 	}
 
 	// packet meta data is explicit 
-	if (g_DecapArista) 		fDecap_Arista_Open		(argc, argv);
-	if (g_DecapMetaMako) 	fDecap_MetaMako_Open	(argc, argv);
-	if (g_DecapIxia) 		fDecap_Ixia_Open		(argc, argv);
+	fDecap_MetaMako_Open(argc, argv);
+	fDecap_Exablaze_Open(argc, argv);
+	fDecap_Arista_Open	(argc, argv);
+	fDecap_Ixia_Open	(argc, argv);
 
 	// protocol implicit in the payload 
 	fDecap_ERSPAN3_Open(argc, argv);
@@ -147,6 +157,7 @@ void fDecap_Close(void)
 	if (g_DecapArista) 		fDecap_Arista_Close		();
 	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
 	if (g_DecapIxia) 		fDecap_Ixia_Close		();
+	if (g_DecapExablaze) 	fDecap_Exablaze_Close	();
 
 	// protocol implicit in the payload 
 	fDecap_ERSPAN3_Close();
@@ -330,6 +341,11 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	{
 		fDecap_Arista_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
+	if (g_DecapExablaze)
+	{
+		fDecap_Exablaze_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+
 
 	// update
 	return EtherProto;

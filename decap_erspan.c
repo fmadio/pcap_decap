@@ -38,7 +38,6 @@
 #include <sys/mman.h>
 #include <sys/shm.h>
 #include <sys/ioctl.h>
-#include <linux/tcp.h>
 
 #include "fTypes.h"
 #include "fNetwork.h"

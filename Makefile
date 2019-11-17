@@ -5,6 +5,7 @@ OBJS += decap_erspan.o
 OBJS += decap_metamako.o
 OBJS += decap_ixia.o
 OBJS += decap_arista.o
+OBJS += decap_exablaze.o
 
 DEF = 
 DEF += -O2

@@ -387,6 +387,20 @@ typedef struct MetaMakoFooter_t
 
 } __attribute__((packed)) MetaMakoFooter_t;
 
+
+typedef struct ExablazeFooter_t
+{
+	u32		OrigFCS;		// originial FCS 
+	u8		DeviceID;		// device id
+	u8		PortID;			// port on the device
+	u32		Sec;			// seccond timestamp 
+	u32		NSec;			// subnano timestamp 
+	u8		PSec;			// pico second 
+	u8		pad0;
+	u32		FCS;			// updated FCS
+
+} __attribute__((packed)) ExablazeFooter_t; 
+
 //------------------------------------------------------------------------------------------------------
 //
 // Ixia 4B footer 
