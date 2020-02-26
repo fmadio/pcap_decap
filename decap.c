@@ -326,6 +326,26 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			// update histogram
 			s_GREProtoHistogram[GREProto]++;
 		}
+
+		// VXLAN
+		if (IPv4Header->Proto == IPv4_PROTO_UDP)
+		{
+			UDPHeader_t* UDP = (UDPHeader_t*)((u8*)IPv4Header + IPv4Header->HLen*4);
+
+			if (swap16(UDP->PortDst) == 4789)
+			{
+				VXLANHeader_t* VXLAN = (VXLANHeader_t*)(UDP + 1);
+				//hfprintf(stderr, "VXLan %04x Group:%04x VNI:%06x\n", VXLAN->Flag, VXLAN->Group, VXLAN->VNI);
+
+
+				fEther_t* EtherNew = (fEther_t*)(VXLAN + 1);
+				u8* PayloadNew		= (u8*)(EtherNew + 1);
+
+				pEther[0] 			= EtherNew; 
+				pPayloadLength[0] 	-=  PayloadNew - pPayload[0];
+				pPayload[0] 		= PayloadNew; 
+			}
+		}
 	}
 
 	// extract data from footers 

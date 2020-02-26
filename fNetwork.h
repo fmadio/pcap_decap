@@ -438,6 +438,18 @@ typedef struct
 } __attribute__((packed)) AristaKeyFrame_t;
 
 //------------------------------------------------------------------------------------------------------
+// VXLan
+
+typedef struct
+{
+	u32		Flag	: 16;
+	u32		Group	: 16;
+	u32		VNI		: 24;
+	u32		Res1	: 8;
+
+} __attribute__((packed)) VXLANHeader_t; 
+
+//------------------------------------------------------------------------------------------------------
 
 static inline u32 IP4Address(u32 a, u32 b, u32 c, u32 d)
 {
