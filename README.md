@@ -9,7 +9,8 @@ Utility is fast, pure C and uses linux pipes. It designed for processing TB scal
 Supports:
 - VLAN
 - MPLS 
-- VNTAG 
+- VNTAG
+- VXLAN
 - GRE basic 
 - ERSPAN v1 Timestamp
 - ERSPAN v3 Timestamp
