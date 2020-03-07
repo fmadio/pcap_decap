@@ -10,6 +10,7 @@ Supports:
 - VLAN
 - MPLS 
 - VNTAG 
+- VXLAN
 - CAPWAP 
 - GRE basic 
 - ERSPAN v1 Timestamp
