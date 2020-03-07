@@ -294,13 +294,6 @@ u16 fDecap_Packet(	u64 PCAPTS,
 		Payload 			= (u8*)(Proto + 1);
 	}
 
-	// set new Ether header (if any)
-	pEther[0] 			= Ether;
-
-	// set new IP header
-	pPayload[0] 		= Payload;
-	pPayloadLength[0]	= PayloadLength;
-
 	// GRE/ERSPAN
 	if (EtherProto == ETHER_PROTO_IPV4)
 	{
@@ -332,7 +325,10 @@ u16 fDecap_Packet(	u64 PCAPTS,
 		{
 			UDPHeader_t* UDP = (UDPHeader_t*)((u8*)IPv4Header + IPv4Header->HLen*4);
 
-			if (swap16(UDP->PortDst) == 4789)
+			// VXLAN decode
+			switch ( swap16(UDP->PortDst))
+			{
+			case UDP_PORT_VXLAN:
 			{
 				VXLANHeader_t* VXLAN = (VXLANHeader_t*)(UDP + 1);
 				//hfprintf(stderr, "VXLan %04x Group:%04x VNI:%06x\n", VXLAN->Flag, VXLAN->Group, VXLAN->VNI);
@@ -345,8 +341,51 @@ u16 fDecap_Packet(	u64 PCAPTS,
 				pPayloadLength[0] 	-=  PayloadNew - pPayload[0];
 				pPayload[0] 		= PayloadNew; 
 			}
+			break;
+		
+			// CAPWAP decode
+			case UDP_PORT_CAPWAP_CMD:
+			case UDP_PORT_CAPWAP_DAT:
+			{
+				CAPWAP_t* CAPWAP = (CAPWAP_t*)(UDP + 1);
+
+				u32 RadioID		= (CAPWAP->_RID_Hi << 2) | CAPWAP->_RID_Lo;
+				u32 WirelessID	= CAPWAP->WBID;
+				u32 Offset		= CAPWAP->HLen * 4;
+
+				IEEE802_11Header_t* IEEE802_11 = (IEEE802_11Header_t*)( (u8*)CAPWAP + Offset);
+
+				// data payload is attached
+				if ((swap16(IEEE802_11->FrameCtrl) & 0x00ff) == IEEE80211_FRAMECTRL_DATA)
+				{
+					IEEE802_LinkCtrl_t* LLC = (IEEE802_LinkCtrl_t*)(IEEE802_11 + 1);
+
+					// update to the acutal proto / ipv4 header
+					EtherProto 			= swap16(LLC->Proto);
+
+					PayloadLength		-=(u8*)(LLC + 1) - Payload;
+					Payload 			= (u8*)(LLC + 1);
+
+					// update the ethernet address only. just the 2x6B on src/dst header 
+					// ethernet protocl is specified with EtherProto 
+					Ether 				= (fEther_t*)IEEE802_11->MACTransmitter;  
+
+					//fprintf(stderr, "CAPWAN Proto:%04x\n", EtherProto);
+				}	
+			}
+			break;
+			}
 		}
 	}
+
+	// set new Ether header (if any)
+	pEther[0] 			= Ether;
+
+	// set new IP header
+	pPayload[0] 		= Payload;
+	pPayloadLength[0]	= PayloadLength;
+
+
 
 	// extract data from footers 
 	if (g_DecapMetaMako)

@@ -179,6 +179,12 @@ typedef struct
 
 } __attribute__((packed)) TCPHeader_t;
 
+
+#define UDP_PORT_VXLAN			4789
+
+#define UDP_PORT_CAPWAP_CMD		5256	
+#define UDP_PORT_CAPWAP_DAT		5247	
+
 typedef struct
 {
 	u16			PortSrc;
@@ -449,6 +455,55 @@ typedef struct
 
 } __attribute__((packed)) VXLANHeader_t; 
 
+//------------------------------------------------------------------------------------------------------
+// CAPWAP
+
+typedef struct
+{
+	u8		Preamble;	
+
+	u16 	_RID_Hi: 	3,
+			HLen: 		5,
+			FLag: 		1,
+			WBID: 		5,
+			_RID_Lo: 	2;
+
+	u8 		Flag_res: 	3,
+			Flag_k: 	1,
+			Flag_m: 	1,
+			Flag_w: 	1,
+			Flag_l: 	1,
+			Flag_f: 	1;
+
+	u16		FragID;
+	u16 	FragOff;
+
+} __attribute__((packed)) CAPWAP_t;
+
+#define IEEE80211_FRAMECTRL_CMD			0x0004
+#define IEEE80211_FRAMECTRL_DATA		0x0008
+typedef struct
+{
+	u16		FrameCtrl;
+	u16		DurationID;
+
+	u8		MACReceiver		[6];
+	u8		MACTransmitter	[6];
+	u8		MACSrc			[6];
+
+	u16	 	SeqCtrl;	
+
+} __attribute__((packed)) IEEE802_11Header_t;
+
+typedef struct 
+{
+	u8		DSAP;
+	u8		SSAP;
+	u8		Ctrl;
+	u8		Org[3];
+	u16		Proto;	
+
+} __attribute__((packed)) IEEE802_LinkCtrl_t;
 //------------------------------------------------------------------------------------------------------
 
 static inline u32 IP4Address(u32 a, u32 b, u32 c, u32 d)
