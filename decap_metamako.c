@@ -144,8 +144,16 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 	// set new packet length (strip footer) 
 	//pPayloadLength[0]	= pPayloadLength[0] - 16;
 
-	// overwrite the timestamp
-	pMetaTS[0]			= TS0;
+	// sanity check as maybe some random packets (e.g. ARP) are not tagged
+	if ( (TS0 > (u64)946688400e9) && (TS0 < (u64)2524611600e9)) 
+	{
+		// overwrite the timestamp
+		pMetaTS[0]			= TS0;
+	}
+	else
+	{
+		printf("invalid timestamp: %lli\n", TS0);
+	}
 
 	return 0;
 }
