@@ -41,6 +41,7 @@ typedef struct fEther_t
 #define ETHER_PROTO_VLAN		0x8100	
 #define ETHER_PROTO_VNTAG		0x8926		// vntag / etag
 #define ETHER_PROTO_MPLS		0x8847
+#define ETHER_PROTO_802_1ad		0x88a8
 
 typedef struct
 {
@@ -110,6 +111,15 @@ typedef struct
 } __attribute__((packed)) MPLSHeader_t;
 
 #define MPLS_LABEL(a)  ( (a->L0 << 12) | (a->L1<<4) | a->L2 )
+
+// 802.1ad QinQ tagged packets
+typedef struct
+{
+	u16			ID;				// tag
+	u16			Proto;			// next ethernet protocol
+
+} __attribute__((packed)) Q802_1ad_t;
+
 
 
 #define IPv4_FLAG_RES			((1<<2) << 13)

@@ -48,6 +48,8 @@ extern bool g_DecapDump;
 
 u8* PrettyNumber(u64 num);
 
+static bool s_DecapMetaMakoDepth = 1;
+
 //---------------------------------------------------------------------------------------------
 
 void fDecap_MetaMako_Open(int argc, char* argv[])
@@ -59,6 +61,13 @@ void fDecap_MetaMako_Open(int argc, char* argv[])
 			trace("MetaMako footer\n");
 			g_DecapMetaMako = true;
 		}
+		if (strcmp(argv[i], "--metamako-double") == 0)
+		{
+			trace("MetaMako Double tagged footer\n");
+			g_DecapMetaMako 		= true;
+			s_DecapMetaMakoDepth 	= 2;
+		}
+
 	}
 }
 
@@ -88,24 +97,55 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 							u64* pMetaTS, 
 							u32* pMetaFCS)
 {
+	u64 TS0;
+	u64 TS1;
+	u64 TS2;
+
+	// double footer
 	// grab the footer, assumption is every packet has a footer 
 	MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(MetaMakoFooter_t)); 
 
-	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
+	TS0 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
 	if (g_DecapDump)
 	{
-		trace("TS: %20lli %s ", TS, FormatTS(TS)); 
-		trace("%8i.%09i ", swap32(Footer->Sec),swap32(Footer->NSec)); 
-		trace("PortID: %2i ", Footer->PortID); 
-		trace("DevID: %04i ", swap16(Footer->DeviceID)); 
-		trace("\n");
+		trace(" | ");
+		trace("TS: %20lli %s ", 	TS0, FormatTS(TS0)); 
+		trace("%8i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
+		trace("PortID: %4i ", 		Footer->PortID); 
+		trace("DevID: %04i ", 		swap16(Footer->DeviceID)); 
+		trace("OrigFCS: %08x ", 	swap32(Footer->OrigFCS));	
+
 	}
+
+	// double tag decode
+	if (s_DecapMetaMakoDepth == 2)
+	{
+		// grab the 2nd footer 
+		MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(MetaMakoFooter_t) - 16); 
+
+		u64 TS1 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
+		if (g_DecapDump)
+		{
+			trace("  |  ");
+			trace("TS: %20lli %s ", 	TS1, FormatTS(TS1)); 
+			trace("%8i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
+			trace("PortID: %4i ", 		Footer->PortID); 
+			trace("DevID: %04i ", 		swap16(Footer->DeviceID)); 
+			trace("OrigFCS: %08x", 		swap32(Footer->OrigFCS));	
+
+			trace("TagDelta: %8i", 	 	TS0 - TS1);	
+		}
+
+		// by default use the inner most tag
+		TS0 = TS1; 
+	}
+
 
 	// set new packet length (strip footer) 
 	//pPayloadLength[0]	= pPayloadLength[0] - 16;
 
 	// overwrite the timestamp
-	pMetaTS[0]			= TS;
+	pMetaTS[0]			= TS0;
 
 	return 0;
 }

@@ -88,7 +88,7 @@ void fDecap_Arista_Close(void)
 }
 
 //---------------------------------------------------------------------------------------------
-// de-encapsulate a packet
+// decode footer 
 u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 							fEther_t** pEther, 
 

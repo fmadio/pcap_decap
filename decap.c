@@ -213,8 +213,13 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	u16 EtherProto = swap16(Ether->Proto);
 	//fprintf(stderr, "decap: %04x\n", EtherProto); 
 
-	u8* Payload 		= pPayload[0];
-	u32 PayloadLength 	= pPayloadLength[0];
+	u8* Payload 			= pPayload[0];
+	u32 PayloadLength 		= pPayloadLength[0];
+
+	// because footers dont care about encasulation data
+	// keep the original payload info 
+	u8* OrigPayload 		= Payload; 
+	u32 OrigPayloadLength 	= PayloadLength;
 
 	// vlan decode
 	if (EtherProto == ETHER_PROTO_VLAN)
@@ -246,6 +251,27 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			// update to the acutal proto / ipv4 header
 			EtherProto 		= swap16(Proto[0]);
 			Payload 		= (u8*)(Proto + 1);
+		}
+	}
+
+	// QinQ vlan double tag 
+	if (EtherProto == ETHER_PROTO_802_1ad)
+	{
+		Q802_1ad_t* Header 	= (Q802_1ad_t*)(Ether+1);
+
+		// update to the acutal proto / ipv4 header
+		EtherProto 			= swap16(Header->Proto);
+		Payload 			= (u8*)(Header + 1);
+
+		// is it double tagged ? 
+		if (EtherProto == ETHER_PROTO_VLAN)
+		{
+			VLANTag_t* Header	= (VLANTag_t*)(Payload);
+			u16* Proto 			= (u16*)(Header + 1);
+
+			// update to the acutal proto / ipv4 header
+			EtherProto 			= swap16(Proto[0]);
+			Payload 			= (u8*)(Proto + 1);
 		}
 	}
 
@@ -390,21 +416,23 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	// extract data from footers 
 	if (g_DecapMetaMako)
 	{
-		fDecap_MetaMako_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
-	}
-	if (g_DecapIxia)
-	{
-		fDecap_Ixia_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
-	}
-	if (g_DecapArista)
-	{
-		fDecap_Arista_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_MetaMako_Unpack	(PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 	if (g_DecapExablaze)
 	{
-		fDecap_Exablaze_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Exablaze_Unpack	(PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
+	if (g_DecapIxia)
+	{
+		fDecap_Ixia_Unpack		(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+	if (g_DecapArista)
+	{
+		fDecap_Arista_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+
+	if (g_DecapDump) trace("\n");
 
 	// update
 	return EtherProto;
