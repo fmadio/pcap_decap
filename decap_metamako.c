@@ -140,7 +140,6 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 		TS0 = TS1; 
 	}
 
-
 	// set new packet length (strip footer) 
 	//pPayloadLength[0]	= pPayloadLength[0] - 16;
 
@@ -149,10 +148,6 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 	{
 		// overwrite the timestamp
 		pMetaTS[0]			= TS0;
-	}
-	else
-	{
-		printf("invalid timestamp: %lli\n", TS0);
 	}
 
 	return 0;
