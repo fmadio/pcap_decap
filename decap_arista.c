@@ -62,6 +62,8 @@ static u64		s_TotalPkts = 0;			// total number of packets processed
 static u64 		s_TotalTS 	= 0;			// total number of packets whose TS was updated
 static u64 		s_TotalKeys	= 0;			// total number of keyframes recevied 
 
+static s32		s_FooterOffset = -4;		// assume overwrite fcs
+
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
@@ -70,10 +72,17 @@ void fDecap_Arista_Open(int argc, char* argv[])
 {
 	for (int i=1; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--arista") == 0)
+		if (strcmp(argv[i], "--arista-insert") == 0)
 		{
-			trace("Arista DANZ Timestamping Format\n");
+			trace("Arista DANZ Timestamping Format (insert)\n");
 			g_DecapArista = true;
+			s_FooterOffset = -8;
+		}
+		if (strcmp(argv[i], "--arista-overwrite") == 0)
+		{
+			trace("Arista DANZ Timestamping Format (overwrite)\n");
+			g_DecapArista = true;
+			s_FooterOffset = -4;
 		}
 	}
 }
@@ -107,8 +116,8 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 
 	// assume its a normal timestamped footer
 
-	// FCS is replaced with a 4B timestamp 
-	u32* Footer  = (u32*)(Payload + PayloadLength - 8);
+	// position of the fotter (insert or overwrite) 
+	u32* Footer  = (u32*)(Payload + PayloadLength - s_FooterOffset);			// FCS 7150 insert
 	u32 Footer32 = swap32(Footer[0]);
 
 	// Arista has a weird 1 bit pad at LSB bit 8
@@ -119,6 +128,9 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 	{
 		Tick31 += 0x80000000ULL;
 	}
+
+	// arista TS
+	u64 AristaTS = 0;
 
 	// arista keyframe ?
 	if (EtherProto == ETHER_PROTO_IPV4)
@@ -157,30 +169,55 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 			// keyframe has no 4 byte footer
 			Tick31 = swap64(Key->ASICTS) &0x7fffffff;
 
+			// use the keyframe timestamp
+			AristaTS = s_KeyTS;
+
 			// count number of keyframes seen
 			s_TotalKeys++;
 		}
+
+		// ptp traffic from the arista does not have timestamp
+		bool IsPTP = false;
+		if ((IPv4->Dst.IP[0] == 224) && (IPv4->Dst.IP[1] == 0) && (IPv4->Dst.IP[2] == 1) && (IPv4->Dst.IP[3] == 129)) IsPTP = true;
+		if ((IPv4->Dst.IP[0] == 224) && (IPv4->Dst.IP[1] == 0) && (IPv4->Dst.IP[2] == 1) && (IPv4->Dst.IP[3] == 130)) IsPTP = true;
+		if ((IPv4->Dst.IP[0] == 224) && (IPv4->Dst.IP[1] == 0) && (IPv4->Dst.IP[2] == 1) && (IPv4->Dst.IP[3] == 131)) IsPTP = true;
+		if ((IPv4->Dst.IP[0] == 224) && (IPv4->Dst.IP[1] == 0) && (IPv4->Dst.IP[2] == 1) && (IPv4->Dst.IP[3] == 132)) IsPTP = true;
+		if (IsPTP)
+		{
+			// use the PCAP timestamp	
+			AristaTS = PCAPTS;
+		}
+	}
+	// arista STP traffic also not timestamped
+	if (EtherProto == ETHER_PROTO_STP)
+	{
+		AristaTS = PCAPTS;
 	}
 
-	// build the full 64b tick counter
-	// combine the lower 31bits with the keyframe
-	// NOTE: need to add it, as it might contain bit31 overflow
-	u64 Tick64 = (s_KeyTick & 0xffffffff80000000ULL) + Tick31;
+	// not a keyframe then generate
+	if (AristaTS == 0)
+	{
+		// build the full 64b tick counter
+		// combine the lower 31bits with the keyframe
+		// NOTE: need to add it, as it might contain bit31 overflow
+		u64 Tick64 = (s_KeyTick & 0xffffffff80000000ULL) + Tick31;
 
-	// difference since last keyframe
-	u64 dTick64 = Tick64 - s_KeyTick;
+		// difference since last keyframe
+		u64 dTick64 = Tick64 - s_KeyTick;
 
-	// convert to nanos
-	u64 AristaTS = s_KeyTS + (dTick64 * 20.0 / 7.0);	
+		// convert to nanos
+		AristaTS = s_KeyTS + (dTick64 * 20.0 / 7.0);	
+	}
 
 	if (g_DecapDump)
 	{
 		static u64 LastArista = 0;
 		static u64 LastTS = 0;
 
-		trace("P:%20lli A:%20lli (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
+		trace("P:%20lli A:%20lli %s (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
 																			PCAPTS, 
 																			AristaTS, 
+																			FormatTS(AristaTS),
 																			AristaTS - PCAPTS, 
 
 																			PCAPTS - LastTS, 
@@ -199,6 +236,7 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 		pMetaTS[0]			= AristaTS;
 		s_TotalTS++;
 	}
+
 	s_TotalPkts++;
 
 	return 0;
