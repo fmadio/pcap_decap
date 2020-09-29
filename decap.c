@@ -411,8 +411,6 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	pPayload[0] 		= Payload;
 	pPayloadLength[0]	= PayloadLength;
 
-
-
 	// extract data from footers 
 	if (g_DecapMetaMako)
 	{
