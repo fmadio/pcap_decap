@@ -50,7 +50,6 @@
 //---------------------------------------------------------------------------------------------
 
 extern bool g_DecapVerbose;
-extern bool g_DecapArista;
 extern bool g_DecapDump;
 
 static u64		s_KeyTS		= 0;			// last Keyframe UTC time
@@ -70,21 +69,27 @@ u8* PrettyNumber(u64 num);
 
 void fDecap_Arista_Open(int argc, char* argv[])
 {
-	for (int i=1; i < argc; i++)
+	for (int i=0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--arista-insert") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (insert)\n");
-			g_DecapArista = true;
 			s_FooterOffset = -8;
 		}
 		if (strcmp(argv[i], "--arista-overwrite") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (overwrite)\n");
-			g_DecapArista = true;
 			s_FooterOffset = -4;
 		}
 	}
+
+	s_KeyTS		= 0;
+	s_KeyTick	= 0;
+	s_KeyTick31	= 0;
+
+	s_TotalPkts = 0;
+	s_TotalTS 	= 0;
+	s_TotalKeys	= 0;
 }
 
 void fDecap_Arista_Close(void)
@@ -117,7 +122,7 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 	// assume its a normal timestamped footer
 
 	// position of the fotter (insert or overwrite) 
-	u32* Footer  = (u32*)(Payload + PayloadLength - s_FooterOffset);			// FCS 7150 insert
+	u32* Footer  = (u32*)(Payload + PayloadLength + s_FooterOffset);			// FCS 7150 insert
 	u32 Footer32 = swap32(Footer[0]);
 
 	// Arista has a weird 1 bit pad at LSB bit 8
@@ -150,9 +155,9 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 			{
 				static u64 LastKeyTS = 0;
 				trace("Keyframe: ");
-				trace("ASIC Tick: %016llx ", s_KeyTick); 
+				trace("ASIC Tick: %016llx %016llx ", s_KeyTick, s_KeyTick31); 
 				trace("ASIC Time: %20lli ", (u64)(s_KeyTick * 20.0 / 7.0)); 
-				trace("UTC  Time: %20lli (%20lli)", s_KeyTS, s_KeyTS - PCAPTS); 
+				trace("UTC  Time: %20lli (%20lli) %s ", s_KeyTS, s_KeyTS - PCAPTS, FormatTS(s_KeyTS) ); 
 				trace("ASIC TS: %08llx ", swap64(Key->ASICTS));
 				trace("EDrop: %2lli ", swap64(Key->EgressIFDrop));
 				trace("dKey: %lli ", s_KeyTS - LastKeyTS);
@@ -167,7 +172,7 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 			}
 
 			// keyframe has no 4 byte footer
-			Tick31 = swap64(Key->ASICTS) &0x7fffffff;
+			Tick31 = s_KeyTick31; 
 
 			// use the keyframe timestamp
 			AristaTS = s_KeyTS;
@@ -194,6 +199,12 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 		AristaTS = PCAPTS;
 	}
 
+	// no keyframe then use capture card 
+	if (s_KeyTS == 0)
+	{
+		AristaTS = PCAPTS;
+	}
+
 	// not a keyframe then generate
 	if (AristaTS == 0)
 	{
@@ -202,11 +213,12 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 		// NOTE: need to add it, as it might contain bit31 overflow
 		u64 Tick64 = (s_KeyTick & 0xffffffff80000000ULL) + Tick31;
 
+
 		// difference since last keyframe
 		u64 dTick64 = Tick64 - s_KeyTick;
 
 		// convert to nanos
-		AristaTS = s_KeyTS + (dTick64 * 20.0 / 7.0);	
+		AristaTS = s_KeyTS + (dTick64 * 20ULL) / 7ULL;
 	}
 
 	if (g_DecapDump)
@@ -225,7 +237,6 @@ u16 fDecap_Arista_Unpack(	u64 PCAPTS,
 																			AristaTS,
 																		 	Tick31,	
 																			(float)(PCAPTS - LastTS) / (float)(AristaTS - LastArista)); 
-
 		LastTS = PCAPTS;
 		LastArista = AristaTS;
 	}
