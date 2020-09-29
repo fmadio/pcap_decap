@@ -201,7 +201,7 @@ int main(int argc, char* argv[])
 		{
 			break;
 		}
-		//fprintf(stderr, "size: %i\n", HeaderInput.LengthCapture);
+//fprintf(stderr, "size: %i\n", HeaderInput.LengthCapture);
 
 		// PCAP timestamp
 		u64 TS = (u64)HeaderInput.Sec * 1000000000ULL + (u64)HeaderInput.NSec * TimeScale; 
