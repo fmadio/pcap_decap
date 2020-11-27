@@ -334,6 +334,11 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			{
 			case GRE_PROTO_ERSPAN2: 
 			case GRE_PROTO_ERSPAN3: 
+
+				// include any encapsulation updates 
+				pPayload[0] 		= Payload;
+				pPayloadLength[0]	= PayloadLength;
+
 				return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 
 			default:
