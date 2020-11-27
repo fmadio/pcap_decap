@@ -42,6 +42,7 @@ typedef struct fEther_t
 #define ETHER_PROTO_VNTAG		0x8926		// vntag / etag
 #define ETHER_PROTO_MPLS		0x8847
 #define ETHER_PROTO_802_1ad		0x88a8
+#define ETHER_PROTO_STP			0x0027
 
 typedef struct
 {

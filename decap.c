@@ -44,11 +44,12 @@
 
 #include "decap.h"
 
-bool g_DecapDump		= false;
-bool g_DecapVerbose		= false;
-bool g_DecapMetaMako	= false;
-bool g_DecapIxia		= false;
-bool g_DecapArista		= false;
+bool g_DecapDump			= false;
+bool g_DecapVerbose			= false;
+bool g_DecapMetaMako		= false;
+bool g_DecapIxia			= false;
+bool g_DecapAristaInsert	= false;
+bool g_DecapAristaOver		= false;
 bool g_DecapExablaze		= false;
 
 
@@ -85,10 +86,12 @@ u16 fDecap_Exablaze_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* p
 void fDecap_Mode(u32 Mode)
 {
 	// reset all
-	g_DecapMetaMako = false;
-	g_DecapIxia 	= false;
-	g_DecapArista 	= false;
-	g_DecapExablaze	= false;
+	g_DecapMetaMako 	= false;
+	g_DecapIxia 		= false;
+	g_DecapAristaInsert	= false;
+	g_DecapAristaOver 	= false;
+
+	trace("set decap mode: %i\n", Mode);
 
 	switch (Mode)
 	{
@@ -103,14 +106,17 @@ void fDecap_Mode(u32 Mode)
 		g_DecapIxia 	= true;
 		break;
 
-	case FNIC_PACKET_TSMODE_ARISTA:
-		g_DecapArista 	= true;
+	case FNIC_PACKET_TSMODE_DANZ_INSERT:
+		g_DecapAristaInsert = true;
 		break;
 
-	case FNIC_PACKET_TSMODE_EXABLAZE:
-		g_DecapExablaze	= true;
+	case FNIC_PACKET_TSMODE_DANZ_OVERWRITE:
+		g_DecapAristaOver = true;
 		break;
 
+	default:
+		trace("unknown decap mode\n");
+		break;
 	}
 }
 */
@@ -154,7 +160,8 @@ void fDecap_Open(int argc, char* argv[])
 void fDecap_Close(void)
 {
 	// packet meta data is explicit 
-	if (g_DecapArista) 		fDecap_Arista_Close		();
+	if (g_DecapAristaInsert = g_DecapAristaOver)	fDecap_Arista_Close		();
+
 	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
 	if (g_DecapIxia) 		fDecap_Ixia_Close		();
 	if (g_DecapExablaze) 	fDecap_Exablaze_Close	();
@@ -416,25 +423,22 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	pPayload[0] 		= Payload;
 	pPayloadLength[0]	= PayloadLength;
 
-
-
 	// extract data from footers 
 	if (g_DecapMetaMako)
 	{
 		fDecap_MetaMako_Unpack	(PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_DecapExablaze)
-	{
-		fDecap_Exablaze_Unpack	(PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
-	}
-
 	if (g_DecapIxia)
 	{
-		fDecap_Ixia_Unpack		(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Ixia_Unpack		(PCAPTS,     pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_DecapArista)
+	if (g_DecapAristaInsert | g_DecapAristaOver)
 	{
 		fDecap_Arista_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+	if (g_DecapExablaze)
+	{
+		fDecap_Exablaze_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
 	if (g_DecapDump) trace("\n");
