@@ -39,6 +39,9 @@ typedef struct fEther_t
 #define ETHER_PROTO_IPV6		0x86dd 
 #define ETHER_PROTO_IP  		0x0888		// special made up type indicating ipv4 or ipv6 
 #define ETHER_PROTO_VLAN		0x8100	
+#define ETHER_PROTO_VLAN9100	0x9100	
+#define ETHER_PROTO_VLAN9200	0x9200		// QnQ double taged
+
 #define ETHER_PROTO_VNTAG		0x8926		// vntag / etag
 #define ETHER_PROTO_MPLS		0x8847
 #define ETHER_PROTO_802_1ad		0x88a8

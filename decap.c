@@ -229,8 +229,10 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	u32 OrigPayloadLength 	= PayloadLength;
 
 	// vlan decode
-	if (EtherProto == ETHER_PROTO_VLAN)
-	{
+	if ((EtherProto == ETHER_PROTO_VLAN) 	 &&  		//origial tastey vlan
+		(EtherProto == ETHER_PROTO_VLAN9100) &&  		// an old kind of QnQ style tag
+		(EtherProto == ETHER_PROTO_VLAN9200) 	 		// another variation of QnQ
+	){
 		VLANTag_t* Header 	= (VLANTag_t*)(Ether+1);
 		u16* Proto 			= (u16*)(Header + 1);
 
