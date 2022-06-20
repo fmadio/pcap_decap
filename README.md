@@ -1,4 +1,4 @@
-![Alt text](http://fmad.io/analytics/logo_decap.png "fmadio pcap de-encapsulation utility")
+![Alt text](http://firmware.fmad.io/images/logo_decap.png "fmadio pcap de-encapsulation utility")
 
 [fmadio 10G 40G 100G Packet Capture](https://fmad.io)
 
