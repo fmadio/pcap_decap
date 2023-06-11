@@ -469,6 +469,8 @@ typedef struct
 	u32			Sec;					// timestamp seconds
 	u32			NSec;					// timestamp nanoseconds
 
+	u16			Proto;					// next protocol
+
 } __attribute__((packed)) Arista7280_t;
 
 //------------------------------------------------------------------------------------------------------
