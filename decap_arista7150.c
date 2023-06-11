@@ -19,7 +19,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
 //
-// Arista DANZ timestamps 
+// Arista 7150 timestamps 
 //
 // Timestamp format is: https://eos.arista.com/timestamping-on-the-7150-series/#Timestamp_Format 
 //
@@ -67,7 +67,7 @@ u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Arista_Open(int argc, char* argv[])
+void fDecap_Arista7150_Open(int argc, char* argv[])
 {
 	for (int i=0; i < argc; i++)
 	{
@@ -92,9 +92,9 @@ void fDecap_Arista_Open(int argc, char* argv[])
 	s_TotalKeys	= 0;
 }
 
-void fDecap_Arista_Close(void)
+void fDecap_Arista7150_Close(void)
 {
-	trace("Arista Timestamp\n");
+	trace("Arista7150 Timestamp\n");
 	trace("    Total Pkt      : %s\n", PrettyNumber(s_TotalPkts));
 	trace("    Total TS Update: %s\n", PrettyNumber(s_TotalTS));
 	trace("    Total TS Drop  : %s\n", PrettyNumber(s_TotalPkts - s_TotalTS));
@@ -103,15 +103,15 @@ void fDecap_Arista_Close(void)
 
 //---------------------------------------------------------------------------------------------
 // decode footer 
-u16 fDecap_Arista_Unpack(	u64 PCAPTS,
-							fEther_t** pEther, 
+u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
+								fEther_t** pEther, 
 
-							u8** pPayload, 
-							u32* pPayloadLength,
-
-							u32* pMetaPort, 
-							u64* pMetaTS, 
-							u32* pMetaFCS)
+								u8** pPayload, 
+								u32* pPayloadLength,
+	
+								u32* pMetaPort, 
+								u64* pMetaTS, 
+								u32* pMetaFCS)
 {
 	fEther_t* Ether 	= pEther[0];
 	u16 EtherProto 		= swap16(Ether->Proto);

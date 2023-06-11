@@ -65,7 +65,7 @@ static void Help(void)
 	fprintf(stderr, "Protocols:\n");
 	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
 	fprintf(stderr, "--ixia             : Ixia X40 Stream. replace FCS with a TS\n");
-	fprintf(stderr, "--arista           : Arista DANZ replace FCS with a TS\n");
+	fprintf(stderr, "--arista7150       : Arista 7150 replace FCS with a TS\n");
 	fprintf(stderr, "--exablaze         : assume every packet has an Exablaze footer\n");
 	fprintf(stderr, "\n");
 }
