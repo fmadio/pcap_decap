@@ -50,6 +50,8 @@ bool g_DecapMetaMako			= false;
 bool g_DecapIxia				= false;
 bool g_DecapArista7150Insert	= false;
 bool g_DecapArista7150Over		= false;
+bool g_DecapArista7280MAC48		= false;
+bool g_DecapArista7280ETH64		= false;
 bool g_DecapExablaze			= false;
 
 
@@ -64,12 +66,14 @@ static u64	s_GREProtoHistogram[0x10000];		// gre protocol histogram
 
 
 void fDecap_Arista7150_Open	(int argc, char* argv[]);
+void fDecap_Arista7280_Open	(int argc, char* argv[]);
 void fDecap_ERSPAN3_Open	(int argc, char* argv[]);
 void fDecap_MetaMako_Open	(int argc, char* argv[]);
 void fDecap_Ixia_Open		(int argc, char* argv[]);
 void fDecap_Exablaze_Open	(int argc, char* argv[]);
 
 void fDecap_Arista7150_Close(void);
+void fDecap_Arista7280_Close(void);
 void fDecap_ERSPAN3_Close	(void);
 void fDecap_MetaMako_Close	(void);
 void fDecap_Ixia_Close		(void);
@@ -79,6 +83,7 @@ u16 fDecap_ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPaylo
 u16 fDecap_MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 fDecap_Arista7150_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Arista7280_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 u16 fDecap_Exablaze_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
@@ -143,6 +148,7 @@ void fDecap_Open(int argc, char* argv[])
 	fDecap_MetaMako_Open	(argc, argv);
 	fDecap_Exablaze_Open	(argc, argv);
 	fDecap_Arista7150_Open	(argc, argv);
+	fDecap_Arista7280_Open	(argc, argv);
 	fDecap_Ixia_Open		(argc, argv);
 
 	// protocol implicit in the payload 
@@ -161,6 +167,7 @@ void fDecap_Close(void)
 {
 	// packet meta data is explicit 
 	if (g_DecapArista7150Insert || g_DecapArista7150Over)	fDecap_Arista7150_Close		();
+	if (g_DecapArista7280MAC48  || g_DecapArista7280ETH64)	fDecap_Arista7280_Close		();
 
 	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
 	if (g_DecapIxia) 		fDecap_Ixia_Close		();
@@ -438,6 +445,11 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	{
 		fDecap_Arista7150_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
+	if (g_DecapArista7280MAC48 | g_DecapArista7280ETH64)
+	{
+		fDecap_Arista7280_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+
 	if (g_DecapExablaze)
 	{
 		fDecap_Exablaze_Unpack		(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);

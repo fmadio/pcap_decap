@@ -47,6 +47,8 @@ typedef struct fEther_t
 #define ETHER_PROTO_802_1ad		0x88a8
 #define ETHER_PROTO_STP			0x0027
 
+#define ETHER_PROTO_ARISTA		0xd28b
+
 typedef struct
 {
 	union
@@ -433,7 +435,6 @@ typedef struct Ixia4BFooter_t
 
 } __attribute__((packed)) Ixia4BFooter_t;
 
-
 //------------------------------------------------------------------------------------------------------
 //
 // arista timestamp 
@@ -458,8 +459,20 @@ typedef struct
 } __attribute__((packed)) AristaKeyFrame_t;
 
 //------------------------------------------------------------------------------------------------------
-// VXLan
+// 
+// arista 64bit ethernet header
+typedef struct
+{
+	u16			SubType;				// 1 - timestamp
+	u16			Version;				// version	
 
+	u32			Sec;					// timestamp seconds
+	u32			NSec;					// timestamp nanoseconds
+
+} __attribute__((packed)) Arista7280_t;
+
+//------------------------------------------------------------------------------------------------------
+// VXLan
 typedef struct
 {
 	u32		Flag	: 16;
@@ -471,7 +484,6 @@ typedef struct
 
 //------------------------------------------------------------------------------------------------------
 // CAPWAP
-
 typedef struct
 {
 	u8		Preamble;	
@@ -518,6 +530,7 @@ typedef struct
 	u16		Proto;	
 
 } __attribute__((packed)) IEEE802_LinkCtrl_t;
+
 //------------------------------------------------------------------------------------------------------
 
 static inline u32 IP4Address(u32 a, u32 b, u32 c, u32 d)

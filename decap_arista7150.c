@@ -71,12 +71,12 @@ void fDecap_Arista7150_Open(int argc, char* argv[])
 {
 	for (int i=0; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--arista-insert") == 0)
+		if (strcmp(argv[i], "--arista7150-insert") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (insert)\n");
 			s_FooterOffset = -8;
 		}
-		if (strcmp(argv[i], "--arista-overwrite") == 0)
+		if (strcmp(argv[i], "--arista7150-overwrite") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (overwrite)\n");
 			s_FooterOffset = -4;
