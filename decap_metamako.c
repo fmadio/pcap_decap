@@ -56,12 +56,12 @@ void fDecap_MetaMako_Open(int argc, char* argv[])
 {
 	for (int i=1; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--metamako") == 0)
+		if (strcmp(argv[i], "--arista7130") == 0)
 		{
 			trace("MetaMako footer\n");
 			g_DecapMetaMako = true;
 		}
-		if (strcmp(argv[i], "--metamako-double") == 0)
+		if (strcmp(argv[i], "--arista7130-double") == 0)
 		{
 			trace("MetaMako Double tagged footer\n");
 			g_DecapMetaMako 		= true;

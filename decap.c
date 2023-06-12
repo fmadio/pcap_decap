@@ -236,8 +236,8 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	u32 OrigPayloadLength 	= PayloadLength;
 
 	// vlan decode
-	if ((EtherProto == ETHER_PROTO_VLAN) 	 &&  		//origial tastey vlan
-		(EtherProto == ETHER_PROTO_VLAN9100) &&  		// an old kind of QnQ style tag
+	if ((EtherProto == ETHER_PROTO_VLAN) 	 ||  		//origial tastey vlan
+		(EtherProto == ETHER_PROTO_VLAN9100) ||  		// an old kind of QnQ style tag
 		(EtherProto == ETHER_PROTO_VLAN9200) 	 		// another variation of QnQ
 	){
 		VLANTag_t* Header 	= (VLANTag_t*)(Ether+1);
@@ -246,6 +246,7 @@ u16 fDecap_Packet(	u64 PCAPTS,
 		// update to the acutal proto / ipv4 header
 		EtherProto 			= swap16(Proto[0]);
 		Payload 			= (u8*)(Proto + 1);
+		PayloadLength		-= 4;
 
 		// VNTag unpack (BME) 
 		if (EtherProto == ETHER_PROTO_VNTAG)
@@ -256,6 +257,7 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			// update to the acutal proto / ipv4 header
 			EtherProto 		= swap16(Proto[0]);
 			Payload 		= (u8*)(Proto + 1);
+			PayloadLength	-= 4;
 		}
 
 		// is it double tagged ? 
@@ -267,6 +269,7 @@ u16 fDecap_Packet(	u64 PCAPTS,
 			// update to the acutal proto / ipv4 header
 			EtherProto 		= swap16(Proto[0]);
 			Payload 		= (u8*)(Proto + 1);
+			PayloadLength	-= 4;
 		}
 	}
 
