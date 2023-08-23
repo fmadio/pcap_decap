@@ -54,7 +54,7 @@ void fDecap_Exablaze_Open(int argc, char* argv[])
 {
 	for (int i=1; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--exablaze") == 0)
+		if (strcmp(argv[i], "--cisco3550") == 0)
 		{
 			trace("Exablaze footer\n");
 			g_DecapExablaze = true;
@@ -95,8 +95,8 @@ u16 fDecap_Exablaze_Unpack(	u64 PCAPTS,
 	{
 		trace("TS: %20lli %s ", TS, FormatTS(TS)); 
 		trace("%8i %f %02i", swap32(Footer->Sec), swap32(Footer->NSec) / (float)0x100000000), Footer->PSec; 
-		trace("PortID: %2x ", Footer->PortID); 
-		trace("DevID: %x", swap16(Footer->DeviceID)); 
+		trace("PortID: %4i ", Footer->PortID); 
+		trace("DevID: %4x", swap16(Footer->DeviceID)); 
 		trace("\n");
 	}
 

@@ -142,6 +142,7 @@ void fDecap_Open(int argc, char* argv[])
 			fprintf(stderr, "Dump Output\n");
 			g_DecapDump = true;
 		}
+
 	}
 
 	// packet meta data is explicit 

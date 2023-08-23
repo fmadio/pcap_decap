@@ -63,10 +63,14 @@ static void Help(void)
 	fprintf(stderr, "-vv                : dump every packet\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr, "Protocols:\n");
-	fprintf(stderr, "--metamako         : assume every packet has metamako footer\n");
-	fprintf(stderr, "--ixia             : Ixia X40 Stream. replace FCS with a TS\n");
-	fprintf(stderr, "--arista7150       : Arista 7150 replace FCS with a TS\n");
-	fprintf(stderr, "--exablaze         : assume every packet has an Exablaze footer\n");
+	fprintf(stderr, "--ixia               : Ixia X40 Stream. replace FCS with a TS\n");
+	fprintf(stderr, "--arista7130         : Arista 7130 footer mode (Metamako)\n");
+	fprintf(stderr, "--arista7130-double  : Arista 7130 footer double tagged\n");
+	fprintf(stderr, "--arista7150-insert  : Arista 7150 insert FCS with a TS\n");
+	fprintf(stderr, "--arista7150-replace : Arista 7150 replace FCS with a TS\n");
+	fprintf(stderr, "--arista7280-mac48   : Arista 7280 48bit source MAC overwrite\n");
+	fprintf(stderr, "--arista7280-eth64   : Arista 7280 64bit Ethernet Header\n");
+	fprintf(stderr, "--cisco3550          : Cisco 3550 (Exablaze)\n");
 	fprintf(stderr, "\n");
 }
 

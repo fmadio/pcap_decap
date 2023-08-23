@@ -52,6 +52,9 @@
 extern bool g_DecapVerbose;
 extern bool g_DecapDump;
 
+extern bool g_DecapArista7150Insert;
+extern bool g_DecapArista7150Over;
+
 static u64		s_KeyTS		= 0;			// last Keyframe UTC time
 static u64		s_KeyTick	= 0;			// last Keyframe ASIC ticks 
 static u64		s_KeyTick31	= 0;			// asic ticks only the lower 31bits
@@ -75,10 +78,12 @@ void fDecap_Arista7150_Open(int argc, char* argv[])
 		{
 			trace("Arista DANZ Timestamping Format (insert)\n");
 			s_FooterOffset = -8;
+			g_DecapArista7150Insert = 1; 
 		}
 		if (strcmp(argv[i], "--arista7150-overwrite") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (overwrite)\n");
+			g_DecapArista7150Over = 1;
 			s_FooterOffset = -4;
 		}
 	}
@@ -212,7 +217,6 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 		// combine the lower 31bits with the keyframe
 		// NOTE: need to add it, as it might contain bit31 overflow
 		u64 Tick64 = (s_KeyTick & 0xffffffff80000000ULL) + Tick31;
-
 
 		// difference since last keyframe
 		u64 dTick64 = Tick64 - s_KeyTick;
