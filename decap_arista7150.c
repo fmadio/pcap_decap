@@ -142,19 +142,52 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 	// arista TS
 	u64 AristaTS = 0;
 
+	// IP header 
+	u8* IPHeader 	= ((u8*)Ether) + 12 + 2;
+
+	// if theres a vlan tag strip it
+	if (EtherProto == ETHER_PROTO_VLAN)
+	{
+		VLANTag_t* Header 	= (VLANTag_t*)(Ether+1);
+
+		u16* Proto 			= (u16*)(Header + 1);
+		EtherProto 			= swap16(Proto[0]);
+
+		IPHeader			= (u8*)(Proto + 1);
+	}
+
 	// arista keyframe ?
 	if (EtherProto == ETHER_PROTO_IPV4)
 	{
-		IPv4Header_t* IPv4 = (IPv4Header_t*)( (u8*)Ether + 12 + 2);
+		IPv4Header_t* IPv4 = (IPv4Header_t*)IPHeader;
 
 		// keyframe
 		if (IPv4->Proto == 253)
 		{
-			AristaKeyFrame_t* Key = (AristaKeyFrame_t*)(IPv4 + 1);
+			u64 ASICTS = 0;
 
-			s_KeyTS  	= swap64(Key->UTCTime);
-			s_KeyTick 	= swap64(Key->ASICTick);
-			s_KeyTick31 = s_KeyTick & 0x7fffffff; 
+			// if there is NO Skew settings
+			if (swap16(IPv4->Len) == 66)
+			{
+				AristaKeyFrame_t* Key = (AristaKeyFrame_t*)(IPv4 + 1);
+				s_KeyTS  	= swap64(Key->UTCTime);
+				s_KeyTick 	= swap64(Key->ASICTick);
+				s_KeyTick31 = s_KeyTick & 0x7fffffff; 
+				ASICTS		= swap64(Key->ASICTS);
+			}
+			// if there is Skew settings
+			else if (swap16(IPv4->Len) == 82)
+			{
+				AristaKeyFrameSkew_t* Key = (AristaKeyFrameSkew_t*)(IPv4 + 1);
+				s_KeyTS  	= swap64(Key->UTCTime);
+				s_KeyTick 	= swap64(Key->ASICTick);
+				s_KeyTick31 = s_KeyTick & 0x7fffffff; 
+				ASICTS		= swap64(Key->ASICTS);
+			}
+			else
+			{
+				trace("unknown keyframe size\n");
+			}
 
 			if (g_DecapDump)
 			{
@@ -163,8 +196,8 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 				trace("ASIC Tick: %016llx %016llx ", s_KeyTick, s_KeyTick31); 
 				trace("ASIC Time: %20lli ", (u64)(s_KeyTick * 20.0 / 7.0)); 
 				trace("UTC  Time: %20lli (%20lli) %s ", s_KeyTS, s_KeyTS - PCAPTS, FormatTS(s_KeyTS) ); 
-				trace("ASIC TS: %08llx ", swap64(Key->ASICTS));
-				trace("EDrop: %2lli ", swap64(Key->EgressIFDrop));
+				trace("ASIC TS: %08llx ", ASICTS);
+				//trace("EDrop: %2lli ", swap64(Key->EgressIFDrop));
 				trace("dKey: %lli ", s_KeyTS - LastKeyTS);
 				trace("\n");
 
@@ -179,8 +212,18 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 			// keyframe has no 4 byte footer
 			Tick31 = s_KeyTick31; 
 
-			// use the keyframe timestamp
-			AristaTS = s_KeyTS;
+			// use the keyframe ASIC Tick (full 64bit) to calculate the actual packet TS
+			//
+			// NOTE: this is different to the UTCTime/ASICTick which suspect is generated
+			//       way further up the pipeline. using UTCTime for this packets timestamp 
+			//       would be incorrect.
+			//
+			//       ASICTS - otoh beleive is generated on egress. so calculate the 64bit epoch time
+			//                the same was a 31bit ticks, except can use the full 64bit tick value
+			//                in the keygrame structure (ASICTS)
+			//
+			AristaTS = s_KeyTS + (ASICTS - s_KeyTick) * 20ULL / 7ULL;
+			//fprintf(stderr, "arista ASICTS:%lli ASICKey:%lli tick delta:%lli\n", swap64(Key->ASICTS), s_KeyTick, swap64(Key->ASICTS) - s_KeyTick );
 
 			// count number of keyframes seen
 			s_TotalKeys++;
@@ -198,6 +241,7 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 			AristaTS = PCAPTS;
 		}
 	}
+
 	// arista STP traffic also not timestamped
 	if (EtherProto == ETHER_PROTO_STP)
 	{
@@ -223,6 +267,12 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 
 		// convert to nanos
 		AristaTS = s_KeyTS + (dTick64 * 20ULL) / 7ULL;
+
+		//fprintf(stderr, "Tick64: %016llx  keyframe tick64 %016llx keyframe utc:%016llx tickDelta:%lli\n", 
+		//		Tick64,
+		//		s_KeyTick,
+		//		s_KeyTS,
+		//		dTick64);
 	}
 
 	if (g_DecapDump)
@@ -230,7 +280,7 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 		static u64 LastArista = 0;
 		static u64 LastTS = 0;
 
-		trace("P:%20lli A:%20lli %s (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
+		trace("PCAPTS:%20lli AristaTS:%20lli %s (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
 																			PCAPTS, 
 																			AristaTS, 
 																			FormatTS(AristaTS),
