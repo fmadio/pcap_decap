@@ -218,9 +218,9 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 			//       way further up the pipeline. using UTCTime for this packets timestamp 
 			//       would be incorrect.
 			//
-			//       ASICTS - otoh beleive is generated on egress. so calculate the 64bit epoch time
-			//                the same was a 31bit ticks, except can use the full 64bit tick value
-			//                in the keygrame structure (ASICTS)
+			//       ASICTS - beleive this is generated on egress. so calculate the 64bit epoch time
+			//                the same as a 31bit tick no normal packets, except we can use the full 64bit tick value
+			//                in the keyframe  structure (ASICTS)
 			//
 			AristaTS = s_KeyTS + (ASICTS - s_KeyTick) * 20ULL / 7ULL;
 			//fprintf(stderr, "arista ASICTS:%lli ASICKey:%lli tick delta:%lli\n", swap64(Key->ASICTS), s_KeyTick, swap64(Key->ASICTS) - s_KeyTick );
