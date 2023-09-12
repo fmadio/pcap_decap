@@ -2,7 +2,8 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
+//
+// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,8 +40,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
 #include "decap.h"
 
 u8* PrettyNumber(u64 num);
@@ -53,7 +52,7 @@ void fDecap_Cisco3550_Open(fDecap_t* D, int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--cisco3550") == 0)
 		{
-			trace("Exablaze footer\n");
+			fprintf(stderr, "Cisco 3550 (Exablaze footer)\n");
 			D->DecapCisco3550 = true;
 		}
 	}
@@ -91,11 +90,10 @@ u16 fDecap_Cisco3550_Unpack(	fDecap_t* D,
 	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (1000000000ULL*(u64)swap32(Footer->NSec)) / 0x100000000ULL;
 	if (D->DecapDump)
 	{
-		trace("TS: %20lli %s ", TS, FormatTS(TS)); 
-		trace("%8i %f %02i", swap32(Footer->Sec), swap32(Footer->NSec) / (float)0x100000000), Footer->PSec; 
-		trace("PortID: %4i ", Footer->PortID); 
-		trace("DevID: %4x", swap16(Footer->DeviceID)); 
-		trace("\n");
+		fprintf(stderr, "| cisco3550 TS: %20lli %s ", TS, FormatTS(TS)); 
+		fprintf(stderr, "%8i %f %02i", swap32(Footer->Sec), swap32(Footer->NSec) / (float)0x100000000), Footer->PSec; 
+		fprintf(stderr, "PortID: %4i ", Footer->PortID); 
+		fprintf(stderr, "DevID: %4x", swap16(Footer->DeviceID)); 
 	}
 
 	// set new packet length (strip footer) 

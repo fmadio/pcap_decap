@@ -18,7 +18,6 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 //
-//
 // Arista 7280 timestamps 
 //   - 48bit Mac Src overwrite
 //   - 64bit Ethernet header 
@@ -44,8 +43,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
 #include "decap.h"
 
 //---------------------------------------------------------------------------------------------
@@ -78,13 +75,13 @@ void fDecap_Arista7280_Open(fDecap_t* D, int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--arista7280-mac48") == 0)
 		{
-			trace("Arista 7280 Timestamping Format (48bit Source MAC overwrite)\n");
+			fprintf(stderr, "Arista 7280 Timestamping Format (48bit Source MAC overwrite)\n");
 			D->DecapArista7280MAC48 = true;
 			P->FooterOffset = -8;
 		}
 		if (strcmp(argv[i], "--arista7280-eth64") == 0)
 		{
-			trace("Arista 7280 Timestamping Format (64bit Ether Header)\n");
+			fprintf(stderr, "Arista 7280 Timestamping Format (64bit Ether Header)\n");
 			D->DecapArista7280ETH64 = true;
 			P->FooterOffset = -4;
 		}
@@ -98,9 +95,9 @@ void fDecap_Arista7280_Open(fDecap_t* D, int argc, char* argv[])
 void fDecap_Arista7280_Close(fDecap_t* D)
 {
 	Proto_t* P = (Proto_t*)D->ProtocolData;
-	trace("Arista7280 Timestamp\n");
-	trace("    Total Pkt      : %s\n",			PrettyNumber(P->TotalPkts));
-	trace("    Total TS Update: %s (%.4f)\n",	PrettyNumber(P->TotalTS), P->TotalTS / (float)P->TotalPkts );
+	fprintf(stderr, "Arista7280 Timestamp\n");
+	fprintf(stderr, "    Total Pkt      : %s\n",		PrettyNumber(P->TotalPkts));
+	fprintf(stderr, "    Total TS Update: %s (%.4f)\n",	PrettyNumber(P->TotalTS), P->TotalTS / (float)P->TotalPkts );
 }
 
 //---------------------------------------------------------------------------------------------
@@ -164,6 +161,12 @@ u16 fDecap_Arista7280_Unpack(	fDecap_t* D,
 		NSec |= ( ((u64)Ether->Src[5]) << 0*8);
 
 		AristaTS = Sec * 1000000000ULL + NSec;
+
+		if (D->DecapDump)
+		{
+			s64 dTS = PCAPTS - AristaTS;
+			fprintf(stderr, " | arista7280.mac48 PCAPTS:%10lli AristaTS:%10lli (%10lli %12.6fsec) ", PCAPTS, AristaTS, dTS, (float)dTS/1e9); 
+		}
 	}
 
 	// 64bit ethernet header
@@ -188,12 +191,12 @@ u16 fDecap_Arista7280_Unpack(	fDecap_t* D,
 			// 
 			//EtherProto = swap16(Header->Proto);
 		}
-	}
 
-	if (D->DecapVerbose)
-	{
-		s64 dTS = PCAPTS - AristaTS;
-		trace("PCAPTS:%10lli AristaTS:%10lli (%10lli %12.6fsec)\n", PCAPTS, AristaTS, dTS, (float)dTS/1e9); 
+		if (D->DecapDump)
+		{
+			s64 dTS = PCAPTS - AristaTS;
+			fprintf(stderr, " | arista7280.eth64 PCAPTS:%10lli AristaTS:%10lli (%10lli %12.6fsec) ", PCAPTS, AristaTS, dTS, (float)dTS/1e9); 
+		}
 	}
 
 	// overwrite timestamp

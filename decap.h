@@ -7,6 +7,18 @@
 #define DECAP_ERROR_MAX						4
 
 
+/*
+// integrated
+#include "common/fTypes.h"
+#include "common/fmadio_fields.h"
+#include "common/fmadio_network.h"
+#include "common/fmadio_trace.h"
+*/
+
+// standalone
+#include "fTypes.h"
+#include "fNetwork.h"
+
 typedef struct fDecap_t
 {
 	bool 	DecapDump;
@@ -23,6 +35,7 @@ typedef struct fDecap_t
 	bool 	DecapArista7280ETH64;				// 7280 eth64
 
 	bool 	DecapCisco3550;						// cisco 3550 (exablaze)
+	bool 	DecapCiscoERSPAN;					// cisco ERSPAN 
 
 	u64		DecapErrorCnt[DECAP_ERROR_MAX];		// number of errors
 

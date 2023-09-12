@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -44,8 +44,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
 #include "decap.h"
 
 //---------------------------------------------------------------------------------------------
@@ -76,13 +74,13 @@ void fDecap_Arista7150_Open(fDecap_t* D, int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--arista7150-insert") == 0)
 		{
-			trace("Arista DANZ Timestamping Format (insert)\n");
+			fprintf(stderr, "Arista DANZ Timestamping Format (insert)\n");
 			P->FooterOffset = -8;
 			D->DecapArista7150Insert = 1; 
 		}
 		if (strcmp(argv[i], "--arista7150-overwrite") == 0)
 		{
-			trace("Arista DANZ Timestamping Format (overwrite)\n");
+			fprintf(stderr, "Arista DANZ Timestamping Format (overwrite)\n");
 			P->FooterOffset = -4;
 			D->DecapArista7150Over = 1;
 		}
@@ -100,11 +98,11 @@ void fDecap_Arista7150_Open(fDecap_t* D, int argc, char* argv[])
 void fDecap_Arista7150_Close(fDecap_t* D)
 {
 	Proto_t* P = (Proto_t*)D->ProtocolData;
-	trace("Arista7150 Timestamp\n");
-	trace("    Total Pkt      : %s\n", PrettyNumber(P->TotalPkts));
-	trace("    Total TS Update: %s\n", PrettyNumber(P->TotalTS));
-	trace("    Total TS Drop  : %s\n", PrettyNumber(P->TotalPkts - P->TotalTS));
-	trace("    Total KeyFrames: %s\n", PrettyNumber(P->TotalKeys));
+	fprintf(stderr, "Arista7150 Timestamp\n");
+	fprintf(stderr, "    Total Pkt      : %s\n", PrettyNumber(P->TotalPkts));
+	fprintf(stderr, "    Total TS Update: %s\n", PrettyNumber(P->TotalTS));
+	fprintf(stderr, "    Total TS Drop  : %s\n", PrettyNumber(P->TotalPkts - P->TotalTS));
+	fprintf(stderr, "    Total KeyFrames: %s\n", PrettyNumber(P->TotalKeys));
 }
 
 //---------------------------------------------------------------------------------------------
@@ -231,24 +229,23 @@ u16 fDecap_Arista7150_Unpack(	fDecap_t* D,
 			}
 			else
 			{
-				trace("unknown keyframe size\n");
+				if (D->DecapDump) fprintf(stderr, "arista7150 ERROR unknown keyframe size ");
 			}
 
 			if (D->DecapDump)
 			{
 				static u64 LastKeyTS = 0;
-				trace("Keyframe: ");
-				trace("ASIC Tick: %016llx %016llx ", P->KeyTick, P->KeyTick31); 
-				trace("ASIC Time: %20lli ", (u64)(P->KeyTick * 20.0 / 7.0)); 
-				trace("UTC  Time: %20lli (%20lli) %s ", P->KeyTS, P->KeyTS - PCAPTS, FormatTS(P->KeyTS) ); 
-				trace("ASIC TS: %08llx ", ASICTS);
-				//trace("EDrop: %2lli ", swap64(Key->EgressIFDrop));
-				trace("dKey: %lli ", P->KeyTS - LastKeyTS);
-				trace("\n");
+				fprintf(stderr, "arista7150 Keyframe: ");
+				fprintf(stderr, "ASIC Tick: %016llx %016llx ", P->KeyTick, P->KeyTick31); 
+				fprintf(stderr, "ASIC Time: %20lli ", (u64)(P->KeyTick * 20.0 / 7.0)); 
+				fprintf(stderr, "UTC  Time: %20lli (%20lli) %s ", P->KeyTS, P->KeyTS - PCAPTS, FormatTS(P->KeyTS) ); 
+				fprintf(stderr, "ASIC TS: %08llx ", ASICTS);
+				fprintf(stderr, "dKey: %lli ", P->KeyTS - LastKeyTS);
+				fprintf(stderr, "\n");
 
 				if ((P->KeyTS - LastKeyTS) > 2e9)
 				{
-					trace("Arista likely dropped keyframe\n");
+					fprintf(stderr, "Arista likely dropped keyframe\n");
 				}
 
 				LastKeyTS = P->KeyTS;
@@ -329,7 +326,7 @@ u16 fDecap_Arista7150_Unpack(	fDecap_t* D,
 		static u64 LastArista = 0;
 		static u64 LastTS = 0;
 
-		trace("PCAPTS:%20lli AristaTS:%20lli %s (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
+		fprintf(stderr, "| arista7150 PCAPTS:%20lli AristaTS:%20lli %s (%15lli) : dPCAPTS %12lli  dArista:%12lli AristaTS: %20lli Ticks: %08llx  : %f\n", 
 																			PCAPTS, 
 																			AristaTS, 
 																			FormatTS(AristaTS),

@@ -2,8 +2,8 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
-// 
+// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
+//
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; either version 2
@@ -17,7 +17,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-//
 //
 // Ixia X40 Stream  decoder. This assumes setting of replace FCS with 4B timestamp
 //
@@ -40,8 +39,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
 #include "decap.h"
 
 //---------------------------------------------------------------------------------------------
@@ -162,7 +159,7 @@ u16 fDecap_Ixia_Unpack(	fDecap_t* D,
 		static u32 LastIxia = 0;
 		static u64 LastTS = 0;
 
-		trace("%20lli %20lli (%20lli) %20lli  %20i  %20i : %f\n", PCAPTS, TS, TS - PCAPTS, PCAPTS - LastTS, IxiaTS, IxiaTS - LastIxia, (float)(PCAPTS - LastTS) / (float)(IxiaTS - LastIxia)); 
+		fprintf(stderr, " | ixia %20lli %20lli (%20lli) %20lli  %20i  %20i : %f\n", PCAPTS, TS, TS - PCAPTS, PCAPTS - LastTS, IxiaTS, IxiaTS - LastIxia, (float)(PCAPTS - LastTS) / (float)(IxiaTS - LastIxia)); 
 
 		LastTS = PCAPTS;
 		LastIxia = IxiaTS;

@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -17,6 +17,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+//
 //
 // MetaMako de-encapsulation 
 //
@@ -39,8 +40,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
 #include "decap.h"
 
 //---------------------------------------------------------------------------------------------
@@ -66,12 +65,12 @@ void fDecap_Arista7130_Open(fDecap_t* D, int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--arista7130") == 0)
 		{
-			trace("MetaMako footer\n");
+			fprintf(stderr, "MetaMako footer\n");
 			D->DecapArista7130 = true;
 		}
 		if (strcmp(argv[i], "--arista7130-double") == 0)
 		{
-			trace("MetaMako Double tagged footer\n");
+			fprintf(stderr, "MetaMako Double tagged footer\n");
 			D->DecapArista7130 	= true;
 			P->FooterDepth 		= 2;
 		}
@@ -118,12 +117,12 @@ u16 fDecap_Arista7130_Unpack(	fDecap_t* D,
 	TS0 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
 	if (D->DecapDump)
 	{
-		trace(" | ");
-		trace("TS: %20lli %s ", 	TS0, FormatTS(TS0)); 
-		trace("%8i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
-		trace("PortID: %4i ", 		Footer->PortID); 
-		trace("DevID: %04i ", 		swap16(Footer->DeviceID)); 
-		trace("OrigFCS: %08x ", 	swap32(Footer->OrigFCS));	
+		fprintf(stderr, " | arista7130 ");
+		fprintf(stderr, "TS: %20lli %s ", 	TS0, FormatTS(TS0)); 
+		fprintf(stderr, "%16i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
+		fprintf(stderr, "PortID: %4i ", 		Footer->PortID); 
+		fprintf(stderr, "DevID: %04i ", 		swap16(Footer->DeviceID)); 
+		fprintf(stderr, "OrigFCS: %08x ", 	swap32(Footer->OrigFCS));	
 	}
 
 	// double tag decode
@@ -135,14 +134,14 @@ u16 fDecap_Arista7130_Unpack(	fDecap_t* D,
 		u64 TS1 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
 		if (D->DecapDump)
 		{
-			trace("  |  ");
-			trace("TS: %20lli %s ", 	TS1, FormatTS(TS1)); 
-			trace("%8i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
-			trace("PortID: %4i ", 		Footer->PortID); 
-			trace("DevID: %04i ", 		swap16(Footer->DeviceID)); 
-			trace("OrigFCS: %08x", 		swap32(Footer->OrigFCS));	
+			fprintf(stderr, "  | arista7130x2 ");
+			fprintf(stderr, "TS: %20lli %s ", 	TS1, FormatTS(TS1)); 
+			fprintf(stderr, "%8i.%09i ", 			swap32(Footer->Sec),swap32(Footer->NSec)); 
+			fprintf(stderr, "PortID: %4i ", 		Footer->PortID); 
+			fprintf(stderr, "DevID: %04i ", 		swap16(Footer->DeviceID)); 
+			fprintf(stderr, "OrigFCS: %08x", 		swap32(Footer->OrigFCS));	
 
-			trace("TagDelta: %8i", 	 	TS0 - TS1);	
+			fprintf(stderr, "TagDelta: %8i", 	 	TS0 - TS1);	
 		}
 
 		// by default use the inner most tag

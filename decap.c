@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018-2019 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -39,29 +39,8 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
-
 #include "decap.h"
 
-/*
-bool g_DecapDump				= false;
-bool g_DecapVerbose				= false;
-bool g_DecapMetaMako			= false;
-bool g_DecapIxia				= false;
-bool g_DecapArista7150Insert	= false;
-bool g_DecapArista7150Over		= false;
-bool g_DecapArista7280MAC48		= false;
-bool g_DecapArista7280ETH64		= false;
-bool g_DecapExablaze			= false;
-
-//---------------------------------------------------------------------------------------------
-// error codes
-
-static u64 	s_DecapErrorCnt[DECAP_ERROR_MAX];	// number of errors
-
-static u64	s_GREProtoHistogram[0x10000];		// gre protocol histogram
-*/
 
 //---------------------------------------------------------------------------------------------
 
@@ -88,46 +67,6 @@ u16 fDecap_Arista7280_Unpack	(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** p
 u16 fDecap_Cisco3550_Unpack		(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
-/*
-void fDecap_Mode(u32 Mode)
-{
-	// reset all
-	g_DecapMetaMako 	= false;
-	g_DecapIxia 		= false;
-	g_DecapAristaInsert	= false;
-	g_DecapAristaOver 	= false;
-
-	trace("set decap mode: %i\n", Mode);
-
-	switch (Mode)
-	{
-	case FNIC_PACKET_TSMODE_NIC:
-		break;
-
-	case FNIC_PACKET_TSMODE_MMAKO:
-		g_DecapMetaMako = true;
-		break;
-
-	case FNIC_PACKET_TSMODE_IXIA:
-		g_DecapIxia 	= true;
-		break;
-
-	case FNIC_PACKET_TSMODE_DANZ_INSERT:
-		g_DecapAristaInsert = true;
-		break;
-
-	case FNIC_PACKET_TSMODE_DANZ_OVERWRITE:
-		g_DecapAristaOver = true;
-		break;
-
-	default:
-		trace("unknown decap mode\n");
-		break;
-	}
-}
-*/
-
-//---------------------------------------------------------------------------------------------
 
 fDecap_t* fDecap_Open(int argc, char* argv[])
 {
@@ -146,7 +85,6 @@ fDecap_t* fDecap_Open(int argc, char* argv[])
 			fprintf(stderr, "Dump Output\n");
 			D->DecapDump = true;
 		}
-
 	}
 
 	// packet meta data is explicit 
@@ -242,6 +180,10 @@ u16 fDecap_Packet(	fDecap_t* D,
 	// keep the original payload info 
 	u8* OrigPayload 		= Payload; 
 	u32 OrigPayloadLength 	= PayloadLength;
+
+
+	// log 
+	if (D->DecapDump) fprintf(stderr, "%lli : Len %6i ; ", PCAPTS, PayloadLength);
 
 	// vlan decode
 	if ((EtherProto == ETHER_PROTO_VLAN) 	 ||  		//origial tastey vlan
@@ -362,11 +304,15 @@ u16 fDecap_Packet(	fDecap_t* D,
 			case GRE_PROTO_ERSPAN2: 
 			case GRE_PROTO_ERSPAN3: 
 
-				// include any encapsulation updates 
-				pPayload[0] 		= Payload;
-				pPayloadLength[0]	= PayloadLength;
+				if (D->DecapCiscoERSPAN)
+				{
+					// include any encapsulation updates 
+					pPayload[0] 		= Payload;
+					pPayloadLength[0]	= PayloadLength;
 
-				return fDecap_ERSPAN3_Unpack(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+					return fDecap_ERSPAN3_Unpack(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+				}
+				break;
 
 			default:
 				//trace("GRE Proto unsuported format: %x\n", GREProto);
@@ -465,7 +411,7 @@ u16 fDecap_Packet(	fDecap_t* D,
 		fDecap_Cisco3550_Unpack		(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
-	if (D->DecapDump) trace("\n");
+	if (D->DecapDump) fprintf(stderr, "\n");
 
 	// update
 	return EtherProto;

@@ -39,9 +39,6 @@
 #include <sys/shm.h>
 #include <sys/ioctl.h>
 
-#include "fTypes.h"
-#include "fNetwork.h"
-
 #include "decap.h"
 
 u8* PrettyNumber(u64 num);
@@ -79,13 +76,22 @@ void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
 {
 	Proto_t* P = (Proto_t*)D->ProtocolData;
 
-	P->TSCalib 		= false;
-	P->TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
-	P->TS0PCAPTS	= 0;		// Packet(0).PCAP.TS 
-	P->TS0ERTS		= 0;		// Packet(0).ERSPAN.TS 
+	for (int i=1; i < argc; i++)
+	{
+		if (strcmp(argv[i], "--erspan3") == 0)
+		{
+			D->DecapCiscoERSPAN == true;
 
-	// reset session info
-	memset(P->ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
+			fprintf(stderr, "Cisco ERPSAN3\n");
+			P->TSCalib 		= false;
+			P->TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
+			P->TS0PCAPTS	= 0;		// Packet(0).PCAP.TS 
+			P->TS0ERTS		= 0;		// Packet(0).ERSPAN.TS 
+
+			// reset session info
+			memset(P->ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
+		}
+	}
 }
 
 void fDecap_ERSPAN3_Close(fDecap_t* D)
@@ -99,7 +105,7 @@ void fDecap_ERSPAN3_Close(fDecap_t* D)
 
 		if (S->TotalPkt == 0) continue;
 
-		trace("ERSPAN Session:%08x PktCnt:%s Bytes:%s Drop:%s GapCnt:%s\n",
+		fprintf(stderr, "ERSPAN Session:%08x PktCnt:%s Bytes:%s Drop:%s GapCnt:%s\n",
 				i, 
 				PrettyNumber(S->TotalPkt), 
 				PrettyNumber(S->TotalByte),
@@ -136,9 +142,9 @@ static void ERSPAN3_Sample(fDecap_t* D, ERSPANv3_t* ERSpan, u32 PayloadLength, u
 		if (dSeq != 1)
 		{
 			// print gaps
-			if (D->DecapVerbose)
+			if (D->DecapDump)
 			{
-				trace("ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%lli\n", Session, SeqNo, S->SeqNo, dSeq);
+				fprintf(stderr, "ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%lli\n", Session, SeqNo, S->SeqNo, dSeq);
 			}
 
 			S->DropCnt++;	
@@ -383,15 +389,14 @@ u16 fDecap_ERSPAN3_Unpack(	fDecap_t* 	D,
 
 		if (D->DecapDump)
 		{
-			trace("ERSPAN Session:%08x ", ERSpanDecode.Header.Session);
-			trace("SeqNo:%08x ", SeqNo);
-			trace("EtherProt:%04x ", EtherProto); 
-			trace("GRA:%i ", ERSpanDecode.Header.Gra); 
-			trace("PCAP.TS:%lli (%s) ", PCAPTS, FormatTS(PCAPTS)); 
-			trace("ERSPAN.TS:%lli (%s) ", TS, FormatTS(TS)); 
-			trace("dTS:%8lli ", TS - PCAPTS); 
-			trace("Ver:%i ", ERSpanDecode.Header.Version); 
-			trace("\n");
+			fprintf(stderr, " | cisco ERSPAN Session:%08x ", ERSpanDecode.Header.Session);
+			fprintf(stderr, "SeqNo:%08x ", SeqNo);
+			fprintf(stderr, "EtherProt:%04x ", EtherProto); 
+			fprintf(stderr, "GRA:%i ", ERSpanDecode.Header.Gra); 
+			fprintf(stderr, "PCAP.TS:%lli (%s) ", PCAPTS, FormatTS(PCAPTS)); 
+			fprintf(stderr, "ERSPAN.TS:%lli (%s) ", TS, FormatTS(TS)); 
+			fprintf(stderr, "dTS:%8lli ", TS - PCAPTS); 
+			fprintf(stderr, "Ver:%i ", ERSpanDecode.Header.Version); 
 		}
 	}
 	break;
