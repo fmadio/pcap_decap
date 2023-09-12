@@ -46,6 +46,7 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
 //---------------------------------------------------------------------------------------------
 
@@ -54,49 +55,58 @@ extern bool 	g_DecapDump;
 extern bool 	g_DecapArista7280MAC48;
 extern bool 	g_DecapArista7280ETH64;
 
-static u64		s_TotalPkts = 0;			// total number of packets processed
-static u64 		s_TotalTS 	= 0;			// total number of packets whose TS was updated
-static u64 		s_TotalKeys	= 0;			// total number of keyframes recevied 
+//---------------------------------------------------------------------------------------------
+// protocol specific info 
+typedef struct Proto_t
+{
+	u64		TotalPkts;			// total number of packets processed
+	u64 	TotalTS;			// total number of packets whose TS was updated
+	u64 	TotalKeys;			// total number of keyframes recevied 
 
-static s32		s_FooterOffset = -4;		// assume overwrite fcs
+	s32		FooterOffset;		// assume overwrite fcs
+
+} Proto_t;
 
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Arista7280_Open(int argc, char* argv[])
+void fDecap_Arista7280_Open(fDecap_t* D, int argc, char* argv[])
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
 	for (int i=0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--arista7280-mac48") == 0)
 		{
 			trace("Arista 7280 Timestamping Format (48bit Source MAC overwrite)\n");
-			g_DecapArista7280MAC48 = true;
-			s_FooterOffset = -8;
+			D->DecapArista7280MAC48 = true;
+			P->FooterOffset = -8;
 		}
 		if (strcmp(argv[i], "--arista7280-eth64") == 0)
 		{
 			trace("Arista 7280 Timestamping Format (64bit Ether Header)\n");
-			g_DecapArista7280ETH64 = true;
-			s_FooterOffset = -4;
+			D->DecapArista7280ETH64 = true;
+			P->FooterOffset = -4;
 		}
 	}
 
-	s_TotalPkts = 0;
-	s_TotalTS 	= 0;
-	s_TotalKeys	= 0;
+	P->TotalPkts 	= 0;
+	P->TotalTS 		= 0;
+	P->TotalKeys	= 0;
 }
 
-void fDecap_Arista7280_Close(void)
+void fDecap_Arista7280_Close(fDecap_t* D)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
 	trace("Arista7280 Timestamp\n");
-	trace("    Total Pkt      : %s\n",			PrettyNumber(s_TotalPkts));
-	trace("    Total TS Update: %s (%.4f)\n",	PrettyNumber(s_TotalTS), s_TotalTS / (float)s_TotalPkts );
+	trace("    Total Pkt      : %s\n",			PrettyNumber(P->TotalPkts));
+	trace("    Total TS Update: %s (%.4f)\n",	PrettyNumber(P->TotalTS), P->TotalTS / (float)P->TotalPkts );
 }
 
 //---------------------------------------------------------------------------------------------
 // decode footer 
-u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
+u16 fDecap_Arista7280_Unpack(	fDecap_t* D,	
+								u64 PCAPTS,
 								fEther_t** pEther, 
 
 								u8** pPayload, 
@@ -106,6 +116,8 @@ u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
 								u64* pMetaTS, 
 								u32* pMetaFCS)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	fEther_t* Ether 	= pEther[0];
 	u16 EtherProto 		= swap16(Ether->Proto);
 
@@ -115,7 +127,7 @@ u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
 	u64 AristaTS = 0;		
 
 	// source mac 48bit overwrite
-	if (g_DecapArista7280MAC48)
+	if (D->DecapArista7280MAC48)
 	{
 		// the 48bits are derivied as follows
 		//
@@ -155,7 +167,7 @@ u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
 	}
 
 	// 64bit ethernet header
-	if (g_DecapArista7280ETH64)
+	if (D->DecapArista7280ETH64)
 	{
 		// 64bit ethernet header version appends a header after the MAC (0xd28b)
 		// this has format of Arista7280_t which includes a full 64bit timestamp
@@ -178,7 +190,7 @@ u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
 		}
 	}
 
-	if (g_DecapVerbose)
+	if (D->DecapVerbose)
 	{
 		s64 dTS = PCAPTS - AristaTS;
 		trace("PCAPTS:%10lli AristaTS:%10lli (%10lli %12.6fsec)\n", PCAPTS, AristaTS, dTS, (float)dTS/1e9); 
@@ -187,11 +199,11 @@ u16 fDecap_Arista7280_Unpack(	u64 PCAPTS,
 	// overwrite timestamp
 	if (AristaTS != 0)
 	{
-		s_TotalTS++;
+		P->TotalTS++;
 		pMetaTS[0] = AristaTS;
 	}
 
-	s_TotalPkts++;
+	P->TotalPkts++;
 
 	return EtherProto;
 }

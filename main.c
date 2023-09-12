@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 	PCAPPacket_t 	HeaderOutput;	
 
 	// init protocol stats
-	fDecap_Open(argc, argv);
+	fDecap_t* D  = fDecap_Open(argc, argv);
 	while (true)
 	{
 		// read pcap header
@@ -221,7 +221,8 @@ int main(int argc, char* argv[])
 		u64 MetaTS 		= TS;		// default assume pcap TS
 		u32 MetaFCS 	= 0;
 
-		u32 EtherProto = fDecap_Packet(	TS,
+		u32 EtherProto = fDecap_Packet(	D,
+										TS,
 										&Ether, 
 										&Payload, 
 										&PayloadLength,
@@ -249,7 +250,7 @@ int main(int argc, char* argv[])
 	}
 
 	// print protocol stats 
-	fDecap_Close();
+	fDecap_Close(D);
 
 	return 0;
 }

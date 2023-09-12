@@ -41,32 +41,29 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
-
-extern bool g_DecapVerbose;
-extern bool g_DecapExablaze;
-extern bool g_DecapDump;
+#include "decap.h"
 
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Exablaze_Open(int argc, char* argv[])
+void fDecap_Cisco3550_Open(fDecap_t* D, int argc, char* argv[])
 {
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--cisco3550") == 0)
 		{
 			trace("Exablaze footer\n");
-			g_DecapExablaze = true;
+			D->DecapCisco3550 = true;
 		}
 	}
 }
 
-void fDecap_Exablaze_Close(void)
+void fDecap_Cisco3550_Close(fDecap_t* D)
 {
 }
 
-static void fDecap_Exablaze_Sample(void)
+static void fDecap_Cisco3550_Sample(void)
 {
 }
 
@@ -78,20 +75,21 @@ static void fDecap_Exablaze_Sample(void)
 //
 // 2) strips the footer, so the orignial packet and FCS are written to the pcap
 //
-u16 fDecap_Exablaze_Unpack(	u64 PCAPTS,
-							fEther_t** pEther, 
+u16 fDecap_Cisco3550_Unpack(	fDecap_t* D,	
+								u64 PCAPTS,
+								fEther_t** pEther, 
 
-							u8** pPayload, 
-							u32* pPayloadLength,
+								u8** pPayload, 
+								u32* pPayloadLength,
 
-							u32* pMetaPort, 
-							u64* pMetaTS, 
-							u32* pMetaFCS)
+								u32* pMetaPort, 
+								u64* pMetaTS, 
+								u32* pMetaFCS)
 {
 	// grab the footer, assumption is every packet has a footer 
 	ExablazeFooter_t* Footer = (ExablazeFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(ExablazeFooter_t)); 
 	u64 TS = (u64)swap32(Footer->Sec)*1000000000ULL + (1000000000ULL*(u64)swap32(Footer->NSec)) / 0x100000000ULL;
-	if (g_DecapDump)
+	if (D->DecapDump)
 	{
 		trace("TS: %20lli %s ", TS, FormatTS(TS)); 
 		trace("%8i %f %02i", swap32(Footer->Sec), swap32(Footer->NSec) / (float)0x100000000), Footer->PSec; 

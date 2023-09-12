@@ -46,69 +46,71 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
 //---------------------------------------------------------------------------------------------
+// protocol specific info 
+typedef struct Proto_t
+{
+	u64		KeyTS;				// last Keyframe UTC time
+	u64		KeyTick;			// last Keyframe ASIC ticks 
+	u64		KeyTick31;			// asic ticks only the lower 31bits
+								// used to detect wraparound
 
-extern bool g_DecapVerbose;
-extern bool g_DecapDump;
+	u64		TotalPkts;			// total number of packets processed
+	u64 	TotalTS;			// total number of packets whose TS was updated
+	u64 	TotalKeys;			// total number of keyframes recevied 
 
-extern bool g_DecapArista7150Insert;
-extern bool g_DecapArista7150Over;
+	s32		FooterOffset;		// assume overwrite fcs
 
-static u64		s_KeyTS		= 0;			// last Keyframe UTC time
-static u64		s_KeyTick	= 0;			// last Keyframe ASIC ticks 
-static u64		s_KeyTick31	= 0;			// asic ticks only the lower 31bits
-											// used to detect wraparound
-
-static u64		s_TotalPkts = 0;			// total number of packets processed
-static u64 		s_TotalTS 	= 0;			// total number of packets whose TS was updated
-static u64 		s_TotalKeys	= 0;			// total number of keyframes recevied 
-
-static s32		s_FooterOffset = -4;		// assume overwrite fcs
+} Proto_t;
 
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Arista7150_Open(int argc, char* argv[])
+void fDecap_Arista7150_Open(fDecap_t* D, int argc, char* argv[])
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
 	for (int i=0; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--arista7150-insert") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (insert)\n");
-			s_FooterOffset = -8;
-			g_DecapArista7150Insert = 1; 
+			P->FooterOffset = -8;
+			D->DecapArista7150Insert = 1; 
 		}
 		if (strcmp(argv[i], "--arista7150-overwrite") == 0)
 		{
 			trace("Arista DANZ Timestamping Format (overwrite)\n");
-			g_DecapArista7150Over = 1;
-			s_FooterOffset = -4;
+			P->FooterOffset = -4;
+			D->DecapArista7150Over = 1;
 		}
 	}
 
-	s_KeyTS		= 0;
-	s_KeyTick	= 0;
-	s_KeyTick31	= 0;
+	P->KeyTS		= 0;
+	P->KeyTick		= 0;
+	P->KeyTick31	= 0;
 
-	s_TotalPkts = 0;
-	s_TotalTS 	= 0;
-	s_TotalKeys	= 0;
+	P->TotalPkts 	= 0;
+	P->TotalTS 		= 0;
+	P->TotalKeys	= 0;
 }
 
-void fDecap_Arista7150_Close(void)
+void fDecap_Arista7150_Close(fDecap_t* D)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
 	trace("Arista7150 Timestamp\n");
-	trace("    Total Pkt      : %s\n", PrettyNumber(s_TotalPkts));
-	trace("    Total TS Update: %s\n", PrettyNumber(s_TotalTS));
-	trace("    Total TS Drop  : %s\n", PrettyNumber(s_TotalPkts - s_TotalTS));
-	trace("    Total KeyFrames: %s\n", PrettyNumber(s_TotalKeys));
+	trace("    Total Pkt      : %s\n", PrettyNumber(P->TotalPkts));
+	trace("    Total TS Update: %s\n", PrettyNumber(P->TotalTS));
+	trace("    Total TS Drop  : %s\n", PrettyNumber(P->TotalPkts - P->TotalTS));
+	trace("    Total KeyFrames: %s\n", PrettyNumber(P->TotalKeys));
 }
 
 //---------------------------------------------------------------------------------------------
 // decode footer 
-u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
+u16 fDecap_Arista7150_Unpack(	fDecap_t* D,	
+								u64 PCAPTS,
 								fEther_t** pEther, 
 
 								u8** pPayload, 
@@ -118,6 +120,8 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 								u64* pMetaTS, 
 								u32* pMetaFCS)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	fEther_t* Ether 	= pEther[0];
 	u16 EtherProto 		= swap16(Ether->Proto);
 
@@ -127,7 +131,7 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 	// assume its a normal timestamped footer
 
 	// position of the fotter (insert or overwrite) 
-	u32* Footer  = (u32*)(Payload + PayloadLength + s_FooterOffset);			// FCS 7150 insert
+	u32* Footer  = (u32*)(Payload + PayloadLength + P->FooterOffset);			// FCS 7150 insert
 	u32 Footer32 = swap32(Footer[0]);
 
 	// Arista has a weird 1 bit pad at LSB bit 8
@@ -174,7 +178,7 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 	//                                                          = 00010010_00110100_00000000_00000000_10000000_00000000_00000001_00000000 
 	//														    = 1234000080000100  
 	//
-	if (Tick31 < s_KeyTick31)
+	if (Tick31 < P->KeyTick31)
 	{
 		// add (1<<31)
 		Tick31 += 0x80000000ULL;
@@ -211,47 +215,47 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 			if (swap16(IPv4->Len) == 66)
 			{
 				AristaKeyFrame_t* Key = (AristaKeyFrame_t*)(IPv4 + 1);
-				s_KeyTS  	= swap64(Key->UTCTime);
-				s_KeyTick 	= swap64(Key->ASICTick);
-				s_KeyTick31 = s_KeyTick & 0x7fffffff; 
-				ASICTS		= swap64(Key->ASICTS);
+				P->KeyTS  		= swap64(Key->UTCTime);
+				P->KeyTick 		= swap64(Key->ASICTick);
+				P->KeyTick31 	= P->KeyTick & 0x7fffffff; 
+				ASICTS			= swap64(Key->ASICTS);
 			}
 			// if there is Skew settings
 			else if (swap16(IPv4->Len) == 82)
 			{
 				AristaKeyFrameSkew_t* Key = (AristaKeyFrameSkew_t*)(IPv4 + 1);
-				s_KeyTS  	= swap64(Key->UTCTime);
-				s_KeyTick 	= swap64(Key->ASICTick);
-				s_KeyTick31 = s_KeyTick & 0x7fffffff; 
-				ASICTS		= swap64(Key->ASICTS);
+				P->KeyTS  		= swap64(Key->UTCTime);
+				P->KeyTick 		= swap64(Key->ASICTick);
+				P->KeyTick31 	= P->KeyTick & 0x7fffffff; 
+				ASICTS			= swap64(Key->ASICTS);
 			}
 			else
 			{
 				trace("unknown keyframe size\n");
 			}
 
-			if (g_DecapDump)
+			if (D->DecapDump)
 			{
 				static u64 LastKeyTS = 0;
 				trace("Keyframe: ");
-				trace("ASIC Tick: %016llx %016llx ", s_KeyTick, s_KeyTick31); 
-				trace("ASIC Time: %20lli ", (u64)(s_KeyTick * 20.0 / 7.0)); 
-				trace("UTC  Time: %20lli (%20lli) %s ", s_KeyTS, s_KeyTS - PCAPTS, FormatTS(s_KeyTS) ); 
+				trace("ASIC Tick: %016llx %016llx ", P->KeyTick, P->KeyTick31); 
+				trace("ASIC Time: %20lli ", (u64)(P->KeyTick * 20.0 / 7.0)); 
+				trace("UTC  Time: %20lli (%20lli) %s ", P->KeyTS, P->KeyTS - PCAPTS, FormatTS(P->KeyTS) ); 
 				trace("ASIC TS: %08llx ", ASICTS);
 				//trace("EDrop: %2lli ", swap64(Key->EgressIFDrop));
-				trace("dKey: %lli ", s_KeyTS - LastKeyTS);
+				trace("dKey: %lli ", P->KeyTS - LastKeyTS);
 				trace("\n");
 
-				if ((s_KeyTS - LastKeyTS) > 2e9)
+				if ((P->KeyTS - LastKeyTS) > 2e9)
 				{
 					trace("Arista likely dropped keyframe\n");
 				}
 
-				LastKeyTS = s_KeyTS;
+				LastKeyTS = P->KeyTS;
 			}
 
 			// keyframe has no 4 byte footer
-			Tick31 = s_KeyTick31; 
+			Tick31 = P->KeyTick31; 
 
 			// use the keyframe ASIC Tick (full 64bit) to calculate the actual packet TS
 			//
@@ -263,11 +267,11 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 			//                the same as a 31bit tick no normal packets, except we can use the full 64bit tick value
 			//                in the keyframe  structure (ASICTS)
 			//
-			AristaTS = s_KeyTS + (ASICTS - s_KeyTick) * 20ULL / 7ULL;
-			//fprintf(stderr, "arista ASICTS:%lli ASICKey:%lli tick delta:%lli\n", swap64(Key->ASICTS), s_KeyTick, swap64(Key->ASICTS) - s_KeyTick );
+			AristaTS = P->KeyTS + (ASICTS - P->KeyTick) * 20ULL / 7ULL;
+			//fprintf(stderr, "arista ASICTS:%lli ASICKey:%lli tick delta:%lli\n", swap64(Key->ASICTS), P->KeyTick, swap64(Key->ASICTS) - P->KeyTick );
 
 			// count number of keyframes seen
-			s_TotalKeys++;
+			P->TotalKeys++;
 		}
 
 		// ptp traffic from the arista does not have timestamp
@@ -290,7 +294,7 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 	}
 
 	// no keyframe then use capture card 
-	if (s_KeyTS == 0)
+	if (P->KeyTS == 0)
 	{
 		AristaTS = PCAPTS;
 	}
@@ -301,26 +305,26 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 		// build the full 64b tick counter
 		// combine the lower 31bits with the keyframe
 		// NOTE: need to add it, as it might contain bit31 overflow
-		u64 Tick64 = (s_KeyTick & 0xffffffff80000000ULL) + Tick31;
+		u64 Tick64 = (P->KeyTick & 0xffffffff80000000ULL) + Tick31;
 
 		// difference since last keyframe
-		u64 dTick64 = Tick64 - s_KeyTick;
+		u64 dTick64 = Tick64 - P->KeyTick;
 
 		// difference in nanoseconds since last keyframe
 		s64 dTick64_ns = (dTick64 * 20ULL) / 7ULL; 
 
 		// convert to full Epoach wrt to the keyframe UTCTime 
-		AristaTS = s_KeyTS + dTick64_ns; 
+		AristaTS = P->KeyTS + dTick64_ns; 
 
 		//fprintf(stderr, "Tick64: %016llx  keyframe tick64 %016llx keyframe UTC:%016llx tickDelta:%lli tick32:%016llx\n", 
 		//		Tick64,
-		//		s_KeyTick,
-		//		s_KeyTS,
+		//		P->KeyTick,
+		//		P->KeyTS,
 		//		dTick64,
 		//		Tick31);
 	}
 
-	if (g_DecapDump)
+	if (D->DecapDump)
 	{
 		static u64 LastArista = 0;
 		static u64 LastTS = 0;
@@ -341,13 +345,13 @@ u16 fDecap_Arista7150_Unpack(	u64 PCAPTS,
 	}
 
 	// update TS only if theres a key frame to base it on
-	if (s_KeyTS != 0)
+	if (P->KeyTS != 0)
 	{
 		pMetaTS[0]			= AristaTS;
-		s_TotalTS++;
+		P->TotalTS++;
 	}
 
-	s_TotalPkts++;
+	P->TotalPkts++;
 
 	return 0;
 }

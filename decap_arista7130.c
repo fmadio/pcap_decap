@@ -41,41 +41,48 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
-extern bool g_DecapVerbose;
-extern bool g_DecapMetaMako;
-extern bool g_DecapDump;
+//---------------------------------------------------------------------------------------------
+// protocol specific info 
+typedef struct Proto_t
+{
+	s32		FooterDepth;		// number of metamako tages 
+
+} Proto_t;
+
 
 u8* PrettyNumber(u64 num);
 
-static bool s_DecapMetaMakoDepth = 1;
-
 //---------------------------------------------------------------------------------------------
 
-void fDecap_MetaMako_Open(int argc, char* argv[])
+void fDecap_Arista7130_Open(fDecap_t* D, int argc, char* argv[])
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
+	// by default assume a single footer
+	P->FooterDepth 	= 2;
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--arista7130") == 0)
 		{
 			trace("MetaMako footer\n");
-			g_DecapMetaMako = true;
+			D->DecapArista7130 = true;
 		}
 		if (strcmp(argv[i], "--arista7130-double") == 0)
 		{
 			trace("MetaMako Double tagged footer\n");
-			g_DecapMetaMako 		= true;
-			s_DecapMetaMakoDepth 	= 2;
+			D->DecapArista7130 	= true;
+			P->FooterDepth 		= 2;
 		}
-
 	}
 }
 
-void fDecap_MetaMako_Close(void)
+void fDecap_Arista7130_Close(fDecap_t* D)
 {
 }
 
-static void fDecap_MetaMako_Sample(void)
+static void fDecap_Arista7130_Sample(void)
 {
 }
 
@@ -87,16 +94,19 @@ static void fDecap_MetaMako_Sample(void)
 //
 // 2) strips the footer, so the orignial packet and FCS are written to the pcap
 //
-u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
-							fEther_t** pEther, 
+u16 fDecap_Arista7130_Unpack(	fDecap_t* D,	
+								u64 PCAPTS,
+								fEther_t** pEther, 
 
-							u8** pPayload, 
-							u32* pPayloadLength,
-
-							u32* pMetaPort, 
-							u64* pMetaTS, 
-							u32* pMetaFCS)
+								u8** pPayload, 
+								u32* pPayloadLength,
+	
+								u32* pMetaPort, 
+								u64* pMetaTS, 
+								u32* pMetaFCS)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	u64 TS0;
 	u64 TS1;
 	u64 TS2;
@@ -106,7 +116,7 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 	MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(MetaMakoFooter_t)); 
 
 	TS0 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
-	if (g_DecapDump)
+	if (D->DecapDump)
 	{
 		trace(" | ");
 		trace("TS: %20lli %s ", 	TS0, FormatTS(TS0)); 
@@ -114,17 +124,16 @@ u16 fDecap_MetaMako_Unpack(	u64 PCAPTS,
 		trace("PortID: %4i ", 		Footer->PortID); 
 		trace("DevID: %04i ", 		swap16(Footer->DeviceID)); 
 		trace("OrigFCS: %08x ", 	swap32(Footer->OrigFCS));	
-
 	}
 
 	// double tag decode
-	if (s_DecapMetaMakoDepth == 2)
+	if (P->FooterDepth == 2)
 	{
 		// grab the 2nd footer 
 		MetaMakoFooter_t* Footer = (MetaMakoFooter_t*)(pPayload[0] + pPayloadLength[0] - sizeof(MetaMakoFooter_t) - 16); 
 
 		u64 TS1 = (u64)swap32(Footer->Sec)*1000000000ULL + (u64)swap32(Footer->NSec);
-		if (g_DecapDump)
+		if (D->DecapDump)
 		{
 			trace("  |  ");
 			trace("TS: %20lli %s ", 	TS1, FormatTS(TS1)); 

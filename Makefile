@@ -2,11 +2,11 @@ OBJS =
 OBJS += main.o
 OBJS += decap.o
 OBJS += decap_erspan.o
-OBJS += decap_metamako.o
 OBJS += decap_ixia.o
+OBJS += decap_arista7130.o
 OBJS += decap_arista7150.o
 OBJS += decap_arista7280.o
-OBJS += decap_exablaze.o
+OBJS += decap_cisco3550.o
 
 DEF = 
 DEF += -O2

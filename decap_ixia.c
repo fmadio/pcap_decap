@@ -42,26 +42,40 @@
 
 #include "fTypes.h"
 #include "fNetwork.h"
+#include "decap.h"
 
-extern bool g_DecapVerbose;
-extern bool g_DecapIxia;
-extern bool g_DecapDump;
+//---------------------------------------------------------------------------------------------
+// protocol specific info 
+typedef struct 
+{
+	bool TSCalib;		// first timestamp not
+	s64	TSOffset;		// refernce delta from PCAP.TS - Ixia.TS 
+	s64	TS0PCAPTS;		// Packet(0).PCAP.TS 
+	s64	TS0IxiaTS;		// Packet(0).Ixia.TS 
+
+} Proto_t;
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Ixia_Open(int argc, char* argv[])
+void fDecap_Ixia_Open(fDecap_t* D, int argc, char* argv[])
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--ixia") == 0)
 		{
 			fprintf(stderr, "Ixia 4B Time footer\n");
-			g_DecapIxia = true;
+			D->DecapIxia = true;
 		}
 	}
+
+	P->TSCalib 		= false;
+	P->TSOffset 		= 0;
+	P->TS0PCAPTS		= 0;
+	P->TS0IxiaTS		= 0;
 }
 
-void fDecap_Ixia_Close(void)
+void fDecap_Ixia_Close(fDecap_t* D)
 {
 }
 
@@ -88,21 +102,21 @@ static u64 TSSignedModulo(u64 Value)
 	return V;
 }
 
-static inline u64 TSExtract(u64 PCAPTS, u64 IxiaTS)
+static inline u64 TSExtract(Proto_t* P, u64 PCAPTS, u64 IxiaTS)
 {
-	if (!s_TSCalib)
+	if (!P->TSCalib)
 	{
-		s_TSCalib 		= true;
-		s_TSOffset 		= IxiaTS - PCAPTS; 
-		s_TS0PCAPTS		= PCAPTS;
-		s_TS0IxiaTS		= IxiaTS;
+		P->TSCalib 		= true;
+		P->TSOffset 		= IxiaTS - PCAPTS; 
+		P->TS0PCAPTS		= PCAPTS;
+		P->TS0IxiaTS		= IxiaTS;
 	}
 
 	// Packet(n).ERSPAN.TS - Packet(n).PCAP.TS
 	s64 dER = IxiaTS - PCAPTS;
 
 	// Packet(n).ERSAPN.TS - Packet(n).PCAP.TS - CalibOffset
-	s64 ERWorld = dER - s_TSOffset;
+	s64 ERWorld = dER - P->TSOffset;
 
 	// remove any 32bit overflows 
 	s64 ERNano = TSSignedModulo(ERWorld); 
@@ -115,7 +129,8 @@ static inline u64 TSExtract(u64 PCAPTS, u64 IxiaTS)
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 fDecap_Ixia_Unpack(	u64 PCAPTS,
+u16 fDecap_Ixia_Unpack(	fDecap_t* D,	
+						u64 PCAPTS,
 						fEther_t** pEther, 
 
 						u8** pPayload, 
@@ -125,6 +140,9 @@ u16 fDecap_Ixia_Unpack(	u64 PCAPTS,
 						u64* pMetaTS, 
 						u32* pMetaFCS)
 {
+
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	fEther_t* Ether 	= pEther[0];
 	u16 EtherProto 		= swap16(Ether->Proto);
 
@@ -138,8 +156,8 @@ u16 fDecap_Ixia_Unpack(	u64 PCAPTS,
 	u32 IxiaTS = (float)swap32(Footer[0]) * (2.857/2.0);		// testing shows it appears the clock is running at half the speed of the documentation 
 
 	// default use the pcap TS
-	u64 TS = TSExtract(PCAPTS, IxiaTS); 
-	if (g_DecapDump)
+	u64 TS = TSExtract(P, PCAPTS, IxiaTS); 
+	if (D->DecapDump)
 	{
 		static u32 LastIxia = 0;
 		static u64 LastTS = 0;

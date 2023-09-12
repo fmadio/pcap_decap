@@ -44,9 +44,6 @@
 
 #include "decap.h"
 
-extern bool g_DecapVerbose;
-extern bool g_DecapDump;
-
 u8* PrettyNumber(u64 num);
 
 //---------------------------------------------------------------------------------------------
@@ -61,21 +58,44 @@ typedef struct
 
 } ERSPAN3Session_t;
 
-static ERSPAN3Session_t* s_ERSPAN3;
 
-void fDecap_ERSPAN3_Open(int argc, char* argv[])
+//---------------------------------------------------------------------------------------------
+// protocol specific info 
+typedef struct 
 {
+	// state for each possible erspan session	
+	ERSPAN3Session_t ERSPAN3[1024];
+
+	bool TSCalib;		// first timestamp not
+	s64	TSEROffset;		// refernce delta from PCAP.TS - ERSPAN.TS 
+	s64	TS0PCAPTS;		// Packet(0).PCAP.TS 
+	s64	TS0ERTS;		// Packet(0).ERSPAN.TS 
+
+} Proto_t;
+
+//---------------------------------------------------------------------------------------------
+
+void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
+{
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
+	P->TSCalib 		= false;
+	P->TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
+	P->TS0PCAPTS	= 0;		// Packet(0).PCAP.TS 
+	P->TS0ERTS		= 0;		// Packet(0).ERSPAN.TS 
+
 	// reset session info
-	s_ERSPAN3 = (ERSPAN3Session_t*)malloc(sizeof(ERSPAN3Session_t) * (1<<10) );
-	memset(s_ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
+	memset(P->ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
 }
 
-void fDecap_ERSPAN3_Close(void)
+void fDecap_ERSPAN3_Close(fDecap_t* D)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	// list session info 
 	for (int i=0; i < 1 << 10; i++)
 	{
-		ERSPAN3Session_t* S = &s_ERSPAN3[i];
+		ERSPAN3Session_t* S = &P->ERSPAN3[i];
 
 		if (S->TotalPkt == 0) continue;
 
@@ -88,11 +108,13 @@ void fDecap_ERSPAN3_Close(void)
 	}
 }
 
-static void ERSPAN3_Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
+static void ERSPAN3_Sample(fDecap_t* D, ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	u32 Session = ERSpan->Header.Session;
 
-	ERSPAN3Session_t* S = &s_ERSPAN3[Session];
+	ERSPAN3Session_t* S = &P->ERSPAN3[Session];
 
 	S->TotalPkt++;
 	S->TotalByte += PayloadLength;
@@ -114,7 +136,7 @@ static void ERSPAN3_Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 		if (dSeq != 1)
 		{
 			// print gaps
-			if (g_DecapVerbose)
+			if (D->DecapVerbose)
 			{
 				trace("ERSPAN Session:%08x Drop SeqNo:%i  LastSeqNo:%i  Delta:%lli\n", Session, SeqNo, S->SeqNo, dSeq);
 			}
@@ -188,38 +210,33 @@ static void ERSPAN3_Sample(ERSPANv3_t* ERSpan, u32 PayloadLength, u32 SeqNo)
 //       its using the offset from the switch
 //
 
-static bool s_TSCalib 		= false;	// first timestamp not
-static s64	s_TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
-static s64	s_TS0PCAPTS		= 0;		// Packet(0).PCAP.TS 
-static s64	s_TS0ERTS		= 0;		// Packet(0).ERSPAN.TS 
-
 #define TSMODULO_BIT	32
-
-static u64 s_TSModuloMask 	= ((1ULL <<  TSMODULO_BIT) - 1);
 
 static u64 TSSignedModulo(u64 Value)
 {
-	s64 V = (Value & s_TSModuloMask); 
+	const u64 TSModuloMask 	= ((1ULL <<  TSMODULO_BIT) - 1);
+
+	s64 V = (Value & TSModuloMask); 
 	V = (V << (64 - TSMODULO_BIT)) >> (64 - TSMODULO_BIT);
 	return V;
 }
 
-static inline u64 TSExtract(ERSPANv3_t* ERSPAN, u64 PCAPTS)
+static inline u64 TSExtract(Proto_t* P, ERSPANv3_t* ERSPAN, u64 PCAPTS)
 {
 	u64 ERTS = ERSPAN->Header.TS;				// 2018/11/6: this was byteswapped, but seems should be native little endian
-	if (!s_TSCalib)
+	if (!P->TSCalib)
 	{
-		s_TSCalib 		= true;
-		s_TSEROffset 	= ERTS - PCAPTS; 
-		s_TS0PCAPTS		= PCAPTS;
-		s_TS0ERTS		= ERTS;
+		P->TSCalib 		= true;
+		P->TSEROffset 	= ERTS - PCAPTS; 
+		P->TS0PCAPTS	= PCAPTS;
+		P->TS0ERTS		= ERTS;
 	}
 
 	// Packet(n).ERSPAN.TS - Packet(n).PCAP.TS
 	s64 dER = ERTS - PCAPTS;
 
 	// Packet(n).ERSAPN.TS - Packet(n).PCAP.TS - CalibOffset
-	s64 ERWorld = dER - s_TSEROffset;
+	s64 ERWorld = dER - P->TSEROffset;
 
 	// remove any 32bit overflows 
 	s64 ERNano = TSSignedModulo(ERWorld); 
@@ -232,16 +249,19 @@ static inline u64 TSExtract(ERSPANv3_t* ERSPAN, u64 PCAPTS)
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
-							fEther_t** pEther, 
+u16 fDecap_ERSPAN3_Unpack(	fDecap_t* 	D,	
+							u64 		PCAPTS,
+							fEther_t**	pEther, 
 
-							u8** pPayload, 
-							u32* pPayloadLength,
+							u8** 		pPayload, 
+							u32* 		pPayloadLength,
 
-							u32* pMetaPort, 
-							u64* pMetaTS, 
-							u32* pMetaFCS)
+							u32* 		pMetaPort, 
+							u64* 		pMetaTS, 
+							u32* 		pMetaFCS)
 {
+	Proto_t* P = (Proto_t*)D->ProtocolData;
+
 	fEther_t* Ether 	= pEther[0];
 	u16 EtherProto 		= swap16(Ether->Proto);
 
@@ -356,12 +376,12 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 		PayloadLength -= 4;
 
 		// calculate timestamp
-		TS = TSExtract(&ERSpanDecode, PCAPTS);
+		TS = TSExtract(P, &ERSpanDecode, PCAPTS);
 
 		// update stats
-		ERSPAN3_Sample(&ERSpanDecode, PayloadLength, SeqNo);	
+		ERSPAN3_Sample(D, &ERSpanDecode, PayloadLength, SeqNo);	
 
-		if (g_DecapDump)
+		if (D->DecapDump)
 		{
 			trace("ERSPAN Session:%08x ", ERSpanDecode.Header.Session);
 			trace("SeqNo:%08x ", SeqNo);
@@ -378,7 +398,7 @@ u16 fDecap_ERSPAN3_Unpack(	u64 PCAPTS,
 
 	default:
 		//trace("ERSPAN unsuported format: %x\n", GREProto);
-		fDecap_Error(DECAP_ERROR_ERSPAN_UNSUPPORTED);
+		fDecap_Error(D, DECAP_ERROR_ERSPAN_UNSUPPORTED);
 		break;
 	}
 

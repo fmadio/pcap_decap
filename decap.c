@@ -44,6 +44,7 @@
 
 #include "decap.h"
 
+/*
 bool g_DecapDump				= false;
 bool g_DecapVerbose				= false;
 bool g_DecapMetaMako			= false;
@@ -54,37 +55,37 @@ bool g_DecapArista7280MAC48		= false;
 bool g_DecapArista7280ETH64		= false;
 bool g_DecapExablaze			= false;
 
-
 //---------------------------------------------------------------------------------------------
 // error codes
 
 static u64 	s_DecapErrorCnt[DECAP_ERROR_MAX];	// number of errors
 
 static u64	s_GREProtoHistogram[0x10000];		// gre protocol histogram
+*/
 
 //---------------------------------------------------------------------------------------------
 
 
-void fDecap_Arista7150_Open	(int argc, char* argv[]);
-void fDecap_Arista7280_Open	(int argc, char* argv[]);
-void fDecap_ERSPAN3_Open	(int argc, char* argv[]);
-void fDecap_MetaMako_Open	(int argc, char* argv[]);
-void fDecap_Ixia_Open		(int argc, char* argv[]);
-void fDecap_Exablaze_Open	(int argc, char* argv[]);
+void fDecap_Arista7150_Open		(fDecap_t* D, int argc, char* argv[]);
+void fDecap_Arista7280_Open		(fDecap_t* D, int argc, char* argv[]);
+void fDecap_Arista7130_Open		(fDecap_t* D, int argc, char* argv[]);
+void fDecap_ERSPAN3_Open		(fDecap_t* D, int argc, char* argv[]);
+void fDecap_Ixia_Open			(fDecap_t* D, int argc, char* argv[]);
+void fDecap_Cisco3550_Open		(fDecap_t* D, int argc, char* argv[]);
 
-void fDecap_Arista7150_Close(void);
-void fDecap_Arista7280_Close(void);
-void fDecap_ERSPAN3_Close	(void);
-void fDecap_MetaMako_Close	(void);
-void fDecap_Ixia_Close		(void);
-void fDecap_Exablaze_Close	(void);
+void fDecap_Arista7150_Close	(fDecap_t* D);
+void fDecap_Arista7280_Close	(fDecap_t* D);
+void fDecap_Arista7130_Close	(fDecap_t* D);
+void fDecap_ERSPAN3_Close		(fDecap_t* D);
+void fDecap_Ixia_Close			(fDecap_t* D);
+void fDecap_Cisco3550_Close		(fDecap_t* D);
 
-u16 fDecap_ERSPAN3_Unpack	(u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
-u16 fDecap_MetaMako_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 fDecap_Ixia_Unpack		(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 fDecap_Arista7150_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 fDecap_Arista7280_Unpack(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
-u16 fDecap_Exablaze_Unpack	(u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_ERSPAN3_Unpack		(fDecap_t* D, u64 TS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* MetaPort, u64* MetaTS, u32* MetaFCS);
+u16 fDecap_Ixia_Unpack			(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Arista7130_Unpack	(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Arista7150_Unpack	(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Arista7280_Unpack	(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
+u16 fDecap_Cisco3550_Unpack		(fDecap_t* D, u64 PCAPTS, fEther_t** pEther, u8** pPayload, u32* pPayloadLength, u32* pMetaPort, u64* pMetaTS, u32* pMetaFCS);
 
 //---------------------------------------------------------------------------------------------
 /*
@@ -128,59 +129,64 @@ void fDecap_Mode(u32 Mode)
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Open(int argc, char* argv[])
+fDecap_t* fDecap_Open(int argc, char* argv[])
 {
+	fDecap_t* D = malloc(sizeof(fDecap_t));
+	memset(D, 0, sizeof(fDecap_t));
+
 	for (int i=1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "-v") == 0)
 		{
 			fprintf(stderr, "Verbose Output\n");
-			g_DecapVerbose = true;
+			D->DecapVerbose = true;
 		}
 		else if (strcmp(argv[i], "-vv") == 0)
 		{
 			fprintf(stderr, "Dump Output\n");
-			g_DecapDump = true;
+			D->DecapDump = true;
 		}
 
 	}
 
 	// packet meta data is explicit 
-	fDecap_MetaMako_Open	(argc, argv);
-	fDecap_Exablaze_Open	(argc, argv);
-	fDecap_Arista7150_Open	(argc, argv);
-	fDecap_Arista7280_Open	(argc, argv);
-	fDecap_Ixia_Open		(argc, argv);
+	fDecap_Arista7130_Open	(D, argc, argv);
+	fDecap_Arista7150_Open	(D, argc, argv);
+	fDecap_Arista7280_Open	(D, argc, argv);
+	fDecap_Cisco3550_Open	(D, argc, argv);
+	fDecap_Ixia_Open		(D, argc, argv);
 
 	// protocol implicit in the payload 
-	fDecap_ERSPAN3_Open(argc, argv);
+	fDecap_ERSPAN3_Open		(D, argc, argv);
 
 	// reset error counts
-	memset(s_DecapErrorCnt, 0, sizeof(s_DecapErrorCnt));
+	memset(D->DecapErrorCnt, 0, sizeof(D->DecapErrorCnt));
 
 	// reset GRE histogram
-	memset(s_GREProtoHistogram, 0, sizeof(s_GREProtoHistogram));
+	memset(D->GREProtoHistogram, 0, sizeof(D->GREProtoHistogram));
+
+	return D;
 }
 
 //---------------------------------------------------------------------------------------------
 
-void fDecap_Close(void)
+void fDecap_Close(fDecap_t* D)
 {
 	// packet meta data is explicit 
-	if (g_DecapArista7150Insert || g_DecapArista7150Over)	fDecap_Arista7150_Close		();
-	if (g_DecapArista7280MAC48  || g_DecapArista7280ETH64)	fDecap_Arista7280_Close		();
+	if (D->DecapArista7150Insert || D->DecapArista7150Over)		fDecap_Arista7150_Close		(D);
+	if (D->DecapArista7280MAC48  || D->DecapArista7280ETH64)	fDecap_Arista7280_Close		(D);
 
-	if (g_DecapMetaMako) 	fDecap_MetaMako_Close	();
-	if (g_DecapIxia) 		fDecap_Ixia_Close		();
-	if (g_DecapExablaze) 	fDecap_Exablaze_Close	();
+	if (D->DecapArista7130) fDecap_Arista7130_Close	(D);
+	if (D->DecapIxia) 		fDecap_Ixia_Close		(D);
+	if (D->DecapCisco3550) 	fDecap_Cisco3550_Close	(D);
 
 	// protocol implicit in the payload 
-	fDecap_ERSPAN3_Close();
+	fDecap_ERSPAN3_Close(D);
 
 	// print any errors
 	for (int i=0; i < DECAP_ERROR_MAX; i++)
 	{
-		if (s_DecapErrorCnt[i] == 0) continue;
+		if (D->DecapErrorCnt[i] == 0) continue;
 
 		u8* Desc = "undef";
 		switch (i)
@@ -189,30 +195,31 @@ void fDecap_Close(void)
 		case DECAP_ERROR_ERSPAN_UNSUPPORTED	: Desc = "ERSPAN_UNSUPPORTED"; 	break;
 		case DECAP_ERROR_ERSPAN_TYPEII		: Desc = "ERSPAN_TYPE_II"; 		break;
 		}
-		fprintf(stderr, "Error: %10lli %s\n", s_DecapErrorCnt[i], Desc);
+		fprintf(stderr, "Error: %10lli %s\n", D->DecapErrorCnt[i], Desc);
 	}
 
 	// print GRE histogram 
 	fprintf(stderr, "GRE Histogram:\n");
 	for (int i=0; i < 0x10000; i++)
 	{
-		if (s_GREProtoHistogram[i] == 0) continue;
-		fprintf(stderr, "    %04x : %16lli\n", i, s_GREProtoHistogram[i]);
+		if (D->GREProtoHistogram[i] == 0) continue;
+		fprintf(stderr, "    %04x : %16lli\n", i, D->GREProtoHistogram[i]);
 	}
 }
 
 //---------------------------------------------------------------------------------------------
 // found an error, dont print per packet as it spewes alot of crap
-void fDecap_Error(u32 Index)
+void fDecap_Error(fDecap_t* D, u32 Index)
 {
 	if (Index > DECAP_ERROR_MAX) return;
 
-	s_DecapErrorCnt[Index]++;
+	D->DecapErrorCnt[Index]++;
 }
 
 //---------------------------------------------------------------------------------------------
 // de-encapsulate a packet
-u16 fDecap_Packet(	u64 PCAPTS,
+u16 fDecap_Packet(	fDecap_t* D,	
+					u64 PCAPTS,
 					struct fEther_t** pEther, 
 
 					u8** pPayload, 
@@ -359,16 +366,16 @@ u16 fDecap_Packet(	u64 PCAPTS,
 				pPayload[0] 		= Payload;
 				pPayloadLength[0]	= PayloadLength;
 
-				return fDecap_ERSPAN3_Unpack(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+				return fDecap_ERSPAN3_Unpack(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 
 			default:
 				//trace("GRE Proto unsuported format: %x\n", GREProto);
-				fDecap_Error(DECAP_ERROR_GRE_UNSUPPORTED);
+				fDecap_Error(D, DECAP_ERROR_GRE_UNSUPPORTED);
 				break;
 			}
 
 			// update histogram
-			s_GREProtoHistogram[GREProto]++;
+			D->GREProtoHistogram[GREProto]++;
 		}
 
 		// VXLAN
@@ -437,29 +444,28 @@ u16 fDecap_Packet(	u64 PCAPTS,
 	pPayloadLength[0]	= PayloadLength;
 
 	// extract data from footers 
-	if (g_DecapMetaMako)
+	if (D->DecapArista7130)
 	{
-		fDecap_MetaMako_Unpack		(PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Arista7130_Unpack		(D, PCAPTS, pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_DecapIxia)
+	if (D->DecapIxia)
 	{
-		fDecap_Ixia_Unpack			(PCAPTS,     pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Ixia_Unpack			(D, PCAPTS,     pEther, &OrigPayload, &OrigPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_DecapArista7150Insert | g_DecapArista7150Over)
+	if (D->DecapArista7150Insert | D->DecapArista7150Over)
 	{
-		fDecap_Arista7150_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Arista7150_Unpack	(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
-	if (g_DecapArista7280MAC48 | g_DecapArista7280ETH64)
+	if (D->DecapArista7280MAC48  | D->DecapArista7280ETH64)
 	{
-		fDecap_Arista7280_Unpack	(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+		fDecap_Arista7280_Unpack	(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
+	}
+	if (D->DecapCisco3550)
+	{
+		fDecap_Cisco3550_Unpack		(D, PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
 	}
 
-	if (g_DecapExablaze)
-	{
-		fDecap_Exablaze_Unpack		(PCAPTS, pEther, pPayload, pPayloadLength, pMetaPort, pMetaTS, pMetaFCS);
-	}
-
-	if (g_DecapDump) trace("\n");
+	if (D->DecapDump) trace("\n");
 
 	// update
 	return EtherProto;
