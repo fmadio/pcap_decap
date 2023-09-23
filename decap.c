@@ -303,7 +303,6 @@ u16 fDecap_Packet(	fDecap_t* D,
 			{
 			case GRE_PROTO_ERSPAN2: 
 			case GRE_PROTO_ERSPAN3: 
-
 				if (D->DecapCiscoERSPAN)
 				{
 					// include any encapsulation updates 

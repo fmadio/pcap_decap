@@ -80,7 +80,7 @@ void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
 	{
 		if (strcmp(argv[i], "--erspan3") == 0)
 		{
-			D->DecapCiscoERSPAN == true;
+			D->DecapCiscoERSPAN = true;
 
 			fprintf(stderr, "Cisco ERPSAN3\n");
 			P->TSCalib 		= false;
@@ -386,17 +386,18 @@ u16 fDecap_ERSPAN3_Unpack(	fDecap_t* 	D,
 
 		// update stats
 		ERSPAN3_Sample(D, &ERSpanDecode, PayloadLength, SeqNo);	
-
 		if (D->DecapDump)
 		{
 			fprintf(stderr, " | cisco ERSPAN Session:%08x ", ERSpanDecode.Header.Session);
 			fprintf(stderr, "SeqNo:%08x ", SeqNo);
 			fprintf(stderr, "EtherProt:%04x ", EtherProto); 
 			fprintf(stderr, "GRA:%i ", ERSpanDecode.Header.Gra); 
+			fprintf(stderr, "PCAP-ERSPAN.TS:%8lli ", PCAPTS - TS);
 			fprintf(stderr, "PCAP.TS:%lli (%s) ", PCAPTS, FormatTS(PCAPTS)); 
 			fprintf(stderr, "ERSPAN.TS:%lli (%s) ", TS, FormatTS(TS)); 
-			fprintf(stderr, "dTS:%8lli ", TS - PCAPTS); 
-			fprintf(stderr, "Ver:%i ", ERSpanDecode.Header.Version); 
+			fprintf(stderr, "ERSPAN.TIck:%12lli ", ERSpan->Header.TS); 
+			fprintf(stderr, "VerEnum:%i ", ERSpanDecode.Header.Version); 
+			fprintf(stderr, "\n");
 		}
 	}
 	break;
