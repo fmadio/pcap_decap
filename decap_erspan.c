@@ -67,6 +67,7 @@ typedef struct
 	s64	TSEROffset;		// refernce delta from PCAP.TS - ERSPAN.TS 
 	s64	TS0PCAPTS;		// Packet(0).PCAP.TS 
 	s64	TS0ERTS;		// Packet(0).ERSPAN.TS 
+	s64	TSScale;		// Packet(0).ERSPAN.TimeStamp Granuality Scaling factor 
 
 } Proto_t;
 
@@ -78,7 +79,7 @@ void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
 
 	for (int i=1; i < argc; i++)
 	{
-		if (strcmp(argv[i], "--erspan3") == 0)
+		if (strcmp(argv[i], "--cisco-erspan3") == 0)
 		{
 			D->DecapCiscoERSPAN = true;
 
@@ -87,6 +88,7 @@ void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
 			P->TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
 			P->TS0PCAPTS	= 0;		// Packet(0).PCAP.TS 
 			P->TS0ERTS		= 0;		// Packet(0).ERSPAN.TS 
+			P->TSScale		= 1;		// assume 1nsec 
 
 			// reset session info
 			memset(P->ERSPAN3, 0, sizeof(ERSPAN3Session_t) * (1<<10) );
@@ -229,9 +231,31 @@ static u64 TSSignedModulo(u64 Value)
 
 static inline u64 TSExtract(Proto_t* P, ERSPANv3_t* ERSPAN, u64 PCAPTS)
 {
-	u64 ERTS = ERSPAN->Header.TS;				// 2018/11/6: this was byteswapped, but seems should be native little endian
+	u64 ERTS = ERSPAN->Header.TS * P->TSScale;				// 2018/11/6: this was byteswapped, but seems should be native little endian
 	if (!P->TSCalib)
 	{
+		fprintf(stderr, "ERSPANv3 Timestamp Granuality: %x\n", ERSPAN->Header.Gra);
+
+		// work out the ERSPAN timestamp granulality
+		switch (ERSPAN->Header.Gra)
+		{
+		// 100 micros
+		case 0: P->TSScale = 100000; break;
+
+		// 100 nanos
+		case 1: P->TSScale =    100; break;
+
+		// custom nanos
+		case 3: P->TSScale =      1; break;
+
+		default:
+			fprintf(stderr, "unknown ERSPANv3 Timestamp Granuality: %x\n", ERSPAN->Header.Gra);
+			break;
+		}
+		// recalculate
+		ERTS = ERSPAN->Header.TS * P->TSScale;
+
+		// save reference point
 		P->TSCalib 		= true;
 		P->TSEROffset 	= ERTS - PCAPTS; 
 		P->TS0PCAPTS	= PCAPTS;
