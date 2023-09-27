@@ -41,7 +41,7 @@ typedef struct fDecap_t
 
 	u64		GREProtoHistogram[0x10000];			// gre protocol histogram
 
-	u8		ProtocolData[32*1024];				// protocol specific info
+	u8		ProtocolData[128*1024];				// protocol specific info
 
 } fDecap_t;
 
