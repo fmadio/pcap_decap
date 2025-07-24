@@ -71,6 +71,7 @@ static void Help(void)
 	fprintf(stderr, "--arista7280-mac48   : Arista 7280 48bit source MAC overwrite\n");
 	fprintf(stderr, "--arista7280-eth64   : Arista 7280 64bit Ethernet Header\n");
 	fprintf(stderr, "--cisco3550          : Cisco 3550 (Exablaze)\n");
+	fprintf(stderr, "--cisco-erspan3      : Cisco Encapsulated Remote Switch Port Analyzer\n");
 	fprintf(stderr, "\n");
 }
 
