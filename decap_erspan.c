@@ -83,7 +83,7 @@ void fDecap_ERSPAN3_Open(fDecap_t* D, int argc, char* argv[])
 		{
 			D->DecapCiscoERSPAN = true;
 
-			fprintf(stderr, "Cisco ERPSAN3\n");
+			fprintf(stderr, "Cisco ERSPAN3\n");
 			P->TSCalib 		= false;
 			P->TSEROffset 	= 0;		// refernce delta from PCAP.TS - ERSPAN.TS 
 			P->TS0PCAPTS	= 0;		// Packet(0).PCAP.TS 
