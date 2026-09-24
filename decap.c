@@ -223,10 +223,37 @@ u16 fDecap_Packet(	fDecap_t* D,
 		}
 	}
 
+	// Arista Timestamp
+	// https://github.com/fmadio/customer_issues/issues/362
+	if (EtherProto == ETHER_PROTO_ARISTA)
+	{
+		Arista7280_t* Header = (Arista7280_t*)Payload;
+
+		// update to the acutal proto / ipv4 header
+		EtherProto 			= swap16(Header->Proto);
+		Payload 			= (u8*)(Header + 1);
+
+		// is there also a vlan?
+		//
+		// cant just let it fall thru as it uses the Ether pointer
+		if ((EtherProto == ETHER_PROTO_VLAN) 	 ||  		//origial tastey vlan
+			(EtherProto == ETHER_PROTO_VLAN9100) ||  		// an old kind of QnQ style tag
+			(EtherProto == ETHER_PROTO_VLAN9200) 	 		// another variation of QnQ
+		){
+			VLANTag_t* Header 	= (VLANTag_t*)(Payload);
+			u16* Proto 			= (u16*)(Header + 1);
+
+			// update to the acutal proto / ipv4 header
+			EtherProto 			= swap16(Proto[0]);
+			Payload 			= (u8*)(Proto + 1);
+			PayloadLength		-= 4;
+		}
+	}
+
 	// QinQ vlan double tag 
 	if (EtherProto == ETHER_PROTO_802_1ad)
 	{
-		Q802_1ad_t* Header 	= (Q802_1ad_t*)(Ether+1);
+		Q802_1ad_t* Header 	= (Q802_1ad_t*)Payload;
 
 		// update to the acutal proto / ipv4 header
 		EtherProto 			= swap16(Header->Proto);
@@ -248,7 +275,7 @@ u16 fDecap_Packet(	fDecap_t* D,
 	if (EtherProto == ETHER_PROTO_MPLS)
 	{
 		// find bottom of stack
-		MPLSHeader_t* Header0 	= (MPLSHeader_t*)(Ether+1);
+		MPLSHeader_t* Header0 	= (MPLSHeader_t*)Payload;
 		MPLSHeader_t* Header1 	= Header0 + 1; 
 		MPLSHeader_t* Header2 	= Header0 + 2; 
 		MPLSHeader_t* Header3 	= Header0 + 3; 
@@ -281,7 +308,7 @@ u16 fDecap_Packet(	fDecap_t* D,
 	// VNTag unpack (BME) 
 	if (EtherProto == ETHER_PROTO_VNTAG)
 	{
-		VNTag_t* Header 	= (VNTag_t*)(Ether+1);
+		VNTag_t* Header 	= (VNTag_t*)Payload;
 		u16* Proto 			= (u16*)(Header + 1);
 
 		// update to the acutal proto / ipv4 header
