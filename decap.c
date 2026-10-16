@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018-2023 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2026 Fmad Engineering (sng) Pte. Ltd., aaron foo
 //
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -283,25 +283,38 @@ u16 fDecap_Packet(	fDecap_t* D,
 		// assume its always IPv4 (tho could be IPv6)
 		EtherProto 			= ETHER_PROTO_IPV4;
 
+		// check for PW, which is identified by next payload being 4 zero bits
+		const u8* Header8 = NULL;
+
 		// single tag
 		if (Header0->BOS)
 		{
-			Payload 			= (u8*)(Header0 + 1);
+			Payload 	= (u8*)(Header0 + 1);
+			Header8		= (const u8 *)(Header0 + 1);
 		}
 		// dobuble tag
 		else if (Header1->BOS)
 		{
-			Payload 			= (u8*)(Header1 + 1);
+			Payload 	= (u8*)(Header1 + 1);
+			Header8		= (const u8 *)(Header1 + 1);
 		}
 		// tripple tag
 		else if (Header2->BOS)
 		{
-			Payload 			= (u8*)(Header2 + 1);
+			Payload 	= (u8*)(Header2 + 1);
+			Header8		= (const u8 *)(Header2 + 1);
 		}
 		// quad tag
 		else if (Header3->BOS)
 		{
-			Payload 			= (u8*)(Header3 + 1);
+			Payload 	= (u8*)(Header3 + 1);
+			Header8		= (const u8 *)(Header3 + 1);
+		}
+
+		// https://www.rfc-editor.org/rfc/rfc4385.html#section-3
+		if ((Header8[0] & 0b11110000) == 0x00)
+		{
+			EtherProto = ETHER_PROTO_PW;
 		}
 	}
 
@@ -314,6 +327,18 @@ u16 fDecap_Packet(	fDecap_t* D,
 		// update to the acutal proto / ipv4 header
 		EtherProto 			= swap16(Proto[0]);
 		Payload 			= (u8*)(Proto + 1);
+	}
+
+	if (EtherProto == ETHER_PROTO_PW)
+	{
+		PWHeader_t* PW = (PWHeader_t*)(Payload);
+
+		// then a full ethernet stack
+		Ether 		= (fEther_t*)(PW + 1);
+		EtherProto 	= swap16(Ether->Proto);
+
+		// skip ethernet header
+		Payload = (u8*)(Ether + 1);
 	}
 
 	// GRE/ERSPAN
