@@ -2,7 +2,7 @@
 //
 // fmadio pcap de-encapsuation utility
 //
-// Copyright (C) 2018 fmad engineering llc aaron foo 
+// Copyright (C) 2018-2026 Fmad Engineering (sng) Pte. Ltd., aaron foo
 // 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -46,6 +46,7 @@ typedef struct fEther_t
 #define ETHER_PROTO_MPLS		0x8847
 #define ETHER_PROTO_802_1ad		0x88a8
 #define ETHER_PROTO_STP			0x0027
+#define ETHER_PROTO_PW			0x0000
 
 #define ETHER_PROTO_ARISTA		0xd28b
 
@@ -555,6 +556,14 @@ typedef struct
 	u16		Proto;	
 
 } __attribute__((packed)) IEEE802_LinkCtrl_t;
+
+// PW encapsulation
+typedef struct PWHeader_t
+{
+	u32 Zeroes : 4;  // 0x0000 - shitty way to identify a protoocol, assuming first 4 bits are 0
+	u32 SeqNo  : 28; // sequence number
+
+} __attribute__((packed)) PWHeader_t;
 
 //------------------------------------------------------------------------------------------------------
 
